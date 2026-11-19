@@ -235,6 +235,9 @@
       margin: 0;
       text-transform: uppercase;
       text-shadow: 0 6px 24px rgba(0, 0, 0, 0.75);
+      pointer-events: auto;
+      cursor: pointer;
+      touch-action: manipulation;
     }
 
     .title-main span {
@@ -2853,6 +2856,13 @@
               <input id="gear-color-pads" type="color" value="#f1f5f9" style="width:26px;height:22px;border:none;background:none;padding:0;cursor:pointer;" />
             </label>
           </div>
+        </div>
+        <div class="setting-row" style="margin-top:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.1);">
+          <div>
+            <div class="setting-label">Admin Console</div>
+            <div class="setting-desc">Manage live ads, 3D models &amp; cloud settings</div>
+          </div>
+          <button id="btn-settings-open-admin" class="btn btn-sm" style="border-color:rgba(245,185,50,0.5);color:var(--gold);">Open</button>
         </div>
       </div>
     </div>
@@ -14865,15 +14875,27 @@
       if (secretTitle) {
         let tapCount = 0;
         let lastTapMs = 0;
-        secretTitle.addEventListener('click', () => {
+        const onSecretTap = (e) => {
+          if (e && e.type === 'touchend') e.preventDefault();
           const now = Date.now();
-          if (now - lastTapMs > 900) tapCount = 0;
+          if (now - lastTapMs > 1500) tapCount = 0;
           lastTapMs = now;
           tapCount += 1;
-          if (tapCount >= 7) {
+          if (tapCount >= 5) {
             tapCount = 0;
             this.requestOpen();
           }
+        };
+        secretTitle.addEventListener('touchend', onSecretTap, { passive: false });
+        secretTitle.addEventListener('click', onSecretTap);
+      }
+
+      const btnSettingsAdmin = document.getElementById('btn-settings-open-admin');
+      if (btnSettingsAdmin) {
+        btnSettingsAdmin.addEventListener('click', () => {
+          const sm = document.getElementById('modal-settings');
+          if (sm) sm.classList.add('hidden');
+          this.requestOpen();
         });
       }
 
@@ -16074,6 +16096,16 @@
       window.addEventListener('online', syncOnline);
       window.addEventListener('offline', syncOnline);
       syncOnline();
+
+      // Auto-reload installed PWA immediately when a new Service Worker version activates
+      if ('serviceWorker' in navigator) {
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
+      }
     })();
   </script>
   <script type="module" src="/src/firebaseLiveAdmin.ts"></script>
