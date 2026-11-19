@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a1628"/>
+      <stop offset="100%" stop-color="#13294b"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <radialGradient id="ball" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#f87171"/>
+      <stop offset="55%" stop-color="#dc2626"/>
+      <stop offset="100%" stop-color="#7f1d1d"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="196" fill="none" stroke="url(#gold)" stroke-width="14" opacity="0.9"/>
+  <!-- Cricket Bat -->
+  <g transform="translate(256 256) rotate(-38)">
+    <rect x="-14" y="-175" width="28" height="82" rx="10" fill="#1e293b" stroke="#f5b932" stroke-width="4"/>
+    <rect x="-34" y="-96" width="68" height="238" rx="16" fill="#f3d5a5" stroke="#b45309" stroke-width="6"/>
+    <line x1="0" y1="-88" x2="0" y2="132" stroke="#d97706" stroke-width="4" opacity="0.5"/>
+  </g>
+  <!-- Cricket Ball -->
+  <circle cx="338" cy="182" r="56" fill="url(#ball)" stroke="#fca5a5" stroke-width="4"/>
+  <path d="M292 152 Q338 182 384 212" fill="none" stroke="#fef3c7" stroke-width="5" stroke-dasharray="9 6"/>
+  <text x="256" y="438" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="900" font-size="52" fill="#f5b932" letter-spacing="4">SIXER 3D</text>
+</svg>

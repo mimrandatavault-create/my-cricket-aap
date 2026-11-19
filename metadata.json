@@ -1,0 +1,8 @@
+{
+  "name": "Remix Sixer Pro Cricket 3D",
+  "description": "Mobile-first 3D portrait cricket chase game built with Three.js in a single self-contained HTML file.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

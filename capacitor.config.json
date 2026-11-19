@@ -1,0 +1,15 @@
+{
+  "appId": "com.sixerpro.cricket3d",
+  "appName": "Sixer Pro Cricket 3D",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "android": {
+    "backgroundColor": "#070d18",
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

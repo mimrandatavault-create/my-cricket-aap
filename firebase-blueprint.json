@@ -1,0 +1,49 @@
+{
+  "entities": {
+    "AppConfig": {
+      "title": "AppConfig",
+      "description": "Live cloud-synced game configuration published by the Admin Portal (ads, ad slots, live score link, and game speed settings).",
+      "type": "object",
+      "properties": {
+        "adsJson": {
+          "type": "string",
+          "description": "Serialized JSON array of active sponsor ads.",
+          "maxLength": 120000
+        },
+        "slotsJson": {
+          "type": "string",
+          "description": "Serialized JSON object of ad slot toggles.",
+          "maxLength": 4000
+        },
+        "liveScoreJson": {
+          "type": "string",
+          "description": "Serialized JSON object of live scoring site link settings.",
+          "maxLength": 4000
+        },
+        "gameSettingsJson": {
+          "type": "string",
+          "description": "Serialized JSON object of game speed and character settings.",
+          "maxLength": 8000
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp of the last live publish.",
+          "maxLength": 64
+        },
+        "updatedBy": {
+          "type": "string",
+          "description": "UID of the admin who published the config.",
+          "maxLength": 128
+        }
+      },
+      "required": ["adsJson", "slotsJson", "liveScoreJson", "gameSettingsJson", "updatedAt", "updatedBy"]
+    }
+  },
+  "firestore": {
+    "/app_config/{docId}": {
+      "schema": { "$ref": "#/entities/AppConfig" },
+      "description": "Singleton live configuration document at /app_config/live readable by all players and writable only by the verified admin."
+    }
+  }
+}

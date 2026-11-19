@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email == 'mimrandatavault@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 64 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidAppConfig(data) {
+      return data.keys().hasAll(['adsJson', 'slotsJson', 'liveScoreJson', 'gameSettingsJson', 'updatedAt', 'updatedBy'])
+        && data.keys().hasOnly(['adsJson', 'slotsJson', 'liveScoreJson', 'gameSettingsJson', 'updatedAt', 'updatedBy'])
+        && data.adsJson is string && data.adsJson.size() <= 120000
+        && data.slotsJson is string && data.slotsJson.size() <= 4000
+        && data.liveScoreJson is string && data.liveScoreJson.size() <= 4000
+        && data.gameSettingsJson is string && data.gameSettingsJson.size() <= 8000
+        && data.updatedAt is string && data.updatedAt.size() <= 64
+        && data.updatedBy is string && data.updatedBy == request.auth.uid && data.updatedBy.size() <= 128;
+    }
+
+    // Live cloud-synced Admin Portal configuration (public read for all players, admin-only write)
+    match /app_config/{docId} {
+      allow get: if isValidId(docId) && docId == 'live';
+      allow list: if false;
+      allow create: if isValidId(docId) && docId == 'live' && isAdmin() && isValidAppConfig(request.resource.data);
+      allow update: if isValidId(docId) && docId == 'live' && isAdmin() && isValidAppConfig(request.resource.data);
+      allow delete: if false;
+    }
+
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
