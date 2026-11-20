@@ -8,6 +8,7 @@
   <meta property="og:title" content="Sixer Pro Cricket 3D" />
   <meta property="og:description" content="Mobile-first 3D portrait cricket chase game built with Three.js in a single self-contained HTML file." />
   <meta property="og:type" content="website" />
+  <meta property="og:image" content="/pwa-512x512.png?v=3" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="theme-color" content="#070d18" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -17,6 +18,22 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" />
   <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png?v=3" />
   <link rel="icon" type="image/svg+xml" href="/icon.svg?v=3" />
+  <script>
+    (function () {
+      if (!document.querySelector('link[rel="manifest"]')) {
+        var ml = document.createElement('link');
+        ml.rel = 'manifest';
+        ml.href = '/manifest.webmanifest';
+        document.head.appendChild(ml);
+      }
+      window.__pwaDeferredPrompt = null;
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.__pwaDeferredPrompt = e;
+        window.dispatchEvent(new CustomEvent('sixer-pwa-prompt-ready'));
+      });
+    })();
+  </script>
 
   <script type="importmap">
   {
@@ -1202,6 +1219,20 @@
       color: var(--gold);
     }
 
+    .bowl-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 9px;
+      font-weight: 900;
+      color: var(--text-dim);
+    }
+
+    .bowl-deliver-btn {
+      padding: 8px;
+      font-size: 11.5px;
+    }
+
     .pace-track {
       position: relative;
       height: 11px;
@@ -1658,12 +1689,224 @@
       .hud-rr-svg {
         max-height: 68px;
       }
+      .hud-bottom.is-bowling {
+        padding: 0 8px 4px;
+        gap: 2px;
+      }
+      .hud-bottom.is-bowling .delivery-tag {
+        display: none;
+      }
       .bowling-dock {
-        max-width: 268px;
+        max-width: min(296px, 92vw);
         padding: 4px 6px;
+        gap: 2.5px;
+        border-radius: 9px;
+        background: rgba(8, 15, 29, 0.74);
+        backdrop-filter: blur(4px);
+      }
+      .bowl-label-row {
+        display: none;
+      }
+      .bowl-btn-row {
+        gap: 3px;
+      }
+      .bowl-opt-btn {
+        padding: 3px 2px;
+        font-size: 8.5px;
+        line-height: 1.15;
+        border-radius: 5px;
+      }
+      .pace-track {
+        height: 6px;
+        border-radius: 4px;
+      }
+      .bowl-deliver-btn {
+        padding: 5px 8px;
+        font-size: 10px;
+        line-height: 1.15;
+        border-radius: 7px;
       }
       .player-intro-card {
-        bottom: calc(140px + var(--safe-bottom));
+        bottom: calc(114px + var(--safe-bottom));
+      }
+      .menu-top-bar {
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+      .stat-pill {
+        padding: 5px 8px;
+        font-size: 11px;
+        gap: 4px;
+      }
+    }
+
+    @media (orientation: landscape) and (max-height: 560px) {
+      .menu-shell {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        pointer-events: auto;
+        justify-content: flex-start;
+        gap: 6px;
+        padding: calc(8px + var(--safe-top)) calc(14px + env(safe-area-inset-right, 0px)) calc(10px + var(--safe-bottom)) calc(14px + env(safe-area-inset-left, 0px));
+      }
+      .menu-top-bar {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .stat-pill {
+        padding: 5px 9px;
+        font-size: 11px;
+      }
+      .title-lockup {
+        margin-top: 0;
+      }
+      .title-kicker {
+        font-size: 9.5px;
+        margin-bottom: 2px;
+      }
+      .title-main {
+        font-size: clamp(24px, 5vw, 34px);
+      }
+      .title-sub {
+        font-size: 10px;
+        margin-top: 2px;
+      }
+      .menu-mascot-stage {
+        height: 92px;
+        margin: 2px 0;
+      }
+      .menu-mascot-img {
+        width: 88px;
+        height: 88px;
+        border-radius: 16px;
+      }
+      .menu-actions {
+        max-width: 560px;
+        gap: 6px;
+      }
+      .menu-matchup-preview {
+        padding: 6px 12px;
+      }
+      .menu-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+      .btn {
+        padding: 9px 10px;
+        font-size: 12px;
+        border-radius: 9px;
+      }
+      .hud-top {
+        max-width: min(740px, 96vw);
+        padding: 3px 8px 0;
+        gap: 2px;
+      }
+      .broadcast-bar {
+        padding: 3px 8px;
+        gap: 6px;
+      }
+      .hud-score-main {
+        font-size: 13.5px;
+      }
+      .hud-overs,
+      .hud-need,
+      .hud-rates {
+        font-size: 8.5px;
+      }
+      .hud-right-controls .icon-btn {
+        min-width: 24px;
+        height: 24px;
+        font-size: 9.5px;
+      }
+      .players-strip {
+        gap: 5px;
+      }
+      .player-mini-card {
+        padding: 2px 7px;
+        font-size: 9.5px;
+      }
+      .order-strip {
+        padding: 2px 8px;
+        font-size: 9px;
+      }
+      .ball-history {
+        min-height: 15px;
+      }
+      .ball-pip {
+        width: 16px;
+        height: 16px;
+        font-size: 8.5px;
+      }
+      .hud-bottom {
+        max-width: min(440px, 74vw);
+        padding: 0 8px 4px;
+        gap: 3px;
+      }
+      .hud-bottom.is-bowling .delivery-tag {
+        display: none;
+      }
+      .delivery-tag {
+        padding: 2px 7px;
+        font-size: 9px;
+      }
+      .shot-btn {
+        padding: 4px 2px;
+        font-size: 9px;
+        border-radius: 6px;
+      }
+      .timing-bar-wrap {
+        padding: 4px 8px;
+        border-radius: 8px;
+      }
+      .timing-track {
+        height: 9px;
+      }
+      .swing-cta {
+        padding: 7px;
+        font-size: 11.5px;
+        border-radius: 8px;
+      }
+      .bowling-dock {
+        max-width: min(400px, 72vw);
+        padding: 4px 7px;
+        gap: 2.5px;
+        border-radius: 9px;
+        background: rgba(8, 15, 29, 0.74);
+        backdrop-filter: blur(4px);
+      }
+      .bowl-label-row {
+        display: none;
+      }
+      .bowl-btn-row {
+        gap: 3px;
+      }
+      .bowl-opt-btn {
+        padding: 3px 3px;
+        font-size: 9px;
+        line-height: 1.15;
+        border-radius: 5px;
+      }
+      .pace-track {
+        height: 6px;
+        border-radius: 4px;
+      }
+      .bowl-deliver-btn {
+        padding: 5px 8px;
+        font-size: 10.5px;
+        border-radius: 7px;
+      }
+      .player-intro-card {
+        bottom: calc(96px + var(--safe-bottom));
+        padding: 7px 10px;
+      }
+      .hud-rr-panel {
+        top: calc(44px + var(--safe-top));
+        width: min(236px, 42vw);
+        padding: 6px 8px;
+      }
+      .modal-card {
+        max-height: 90vh;
+        padding: 12px;
       }
     }
 
@@ -2304,9 +2547,13 @@
       <div class="stat-pill tabular">
         BEST: <span id="menu-highscore" style="color:var(--gold)">0</span>
       </div>
-      <button id="btn-pwa-install" class="stat-pill hidden" style="cursor:pointer;border-color:rgba(245,185,50,0.55);background:rgba(245,185,50,0.14);color:var(--gold);font-weight:800;" title="Install Sixer Pro Cricket 3D App">
+      <button id="btn-menu-rotate" class="stat-pill" style="cursor:pointer;" title="Rotate Screen (Portrait / Landscape)">
+        <span>🔄</span>
+        <span>Rotate</span>
+      </button>
+      <button id="btn-pwa-install" class="stat-pill" style="cursor:pointer;border-color:rgba(245,185,50,0.55);background:rgba(245,185,50,0.14);color:var(--gold);font-weight:800;" title="Download / Install Sixer Pro Cricket 3D">
         <span>📲</span>
-        <span>Install App</span>
+        <span>Download App</span>
       </button>
     </div>
 
@@ -2341,9 +2588,10 @@
         <button id="btn-missions" class="btn">Daily Missions<span id="menu-missions-badge" class="mission-badge hidden">0</span></button>
         <button id="btn-career" class="btn">🏆 Career &amp; Board</button>
         <button id="btn-settings" class="btn">Settings</button>
+        <button id="btn-menu-download" class="btn" style="border-color:rgba(16,185,129,0.55);background:rgba(16,185,129,0.14);color:#6ee7b7;">📲 Download Game</button>
       </div>
       <div id="menu-ad-banner" class="ad-banner-slot hidden"></div>
-      <div class="menu-hint">Tap to Bat • Line, Length &amp; Pace to Bowl • Portrait Ready</div>
+      <div class="menu-hint">Tap to Bat • Line, Length &amp; Pace to Bowl • Portrait &amp; Landscape Ready</div>
     </div>
   </div>
 
@@ -2369,8 +2617,8 @@
         <div class="hud-right-controls">
           <a id="hud-livescore-link" class="icon-btn livescore-hud-btn hidden" href="#" target="_blank" rel="noopener noreferrer" title="Live Scoring Site">📡</a>
           <button id="btn-hud-hawkeye" class="icon-btn cam-toggle-btn" title="Hawk-Eye Pitch Map">MAP</button>
-          <button id="btn-hud-rr" class="icon-btn cam-toggle-btn" title="Run-Rate Chart">RR</button>
           <button id="btn-hud-cam" class="icon-btn cam-toggle-btn" title="Camera">CAM</button>
+          <button id="btn-hud-rotate" class="icon-btn cam-toggle-btn" title="Rotate Screen">🔄</button>
           <button id="btn-hud-sound" class="icon-btn" title="Sound">🔊</button>
           <button id="btn-hud-pause" class="icon-btn" title="Pause">❚❚</button>
           <button id="btn-hud-exit" class="icon-btn cam-toggle-btn" style="background:rgba(220,38,38,0.28);border-color:rgba(248,113,113,0.55);color:#fecaca;" title="Exit Match">EXIT</button>
@@ -2395,26 +2643,6 @@
             <span class="hud-rr-chip"><span class="hud-rr-dot" style="background:#19c37d;"></span>Run</span>
           </div>
           <span id="hud-hawkeye-zone" class="tabular" style="font-weight:800;color:var(--gold);">GOOD LENGTH</span>
-        </div>
-      </div>
-
-      <!-- D3 Run-Rate Progression Chart (updates at end of each over) -->
-      <div id="hud-rr-panel" class="hud-rr-panel hidden">
-        <div class="hud-rr-header">
-          <div class="hud-rr-title">RUN-RATE PROGRESSION</div>
-          <div class="hud-rr-meta">
-            <span id="hud-rr-badge" class="hud-rr-badge tabular">CRR 0.00</span>
-            <button id="btn-rr-close" class="hud-rr-close" title="Close">✕</button>
-          </div>
-        </div>
-        <svg id="hud-rr-svg" class="hud-rr-svg" viewBox="0 0 284 112" preserveAspectRatio="xMidYMid meet"></svg>
-        <div class="hud-rr-legend">
-          <div class="hud-rr-legend-items">
-            <span class="hud-rr-chip"><span class="hud-rr-dot" style="background:#19c37d;"></span><span id="hud-rr-leg-curr">Current</span></span>
-            <span id="hud-rr-leg-prev-wrap" class="hud-rr-chip hidden"><span class="hud-rr-dot" style="background:#f5b932;"></span>1st Inn</span>
-            <span class="hud-rr-chip"><span class="hud-rr-dot" style="background:#ff4b6a;"></span>Wicket</span>
-          </div>
-          <span id="hud-rr-sub" class="tabular">End of Over</span>
         </div>
       </div>
 
@@ -2542,12 +2770,12 @@
 
       <!-- BOWLING CONTROLS -->
       <div id="bowling-controls-wrap" class="bowling-dock hidden">
-        <div class="bowl-btn-row cols-3" style="margin-bottom:2px;">
+        <div class="bowl-btn-row cols-3">
           <button id="btn-bowl-field" class="bowl-opt-btn" title="Change Field Setting">Field: Bal</button>
           <button id="btn-bowl-side" class="bowl-opt-btn" title="Over / Around the Wicket">Side: Over</button>
           <button id="btn-bowl-change" class="bowl-opt-btn" title="Change Bowler">Bowler ↻</button>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:9px;font-weight:900;color:var(--text-dim);">
+        <div class="bowl-label-row">
           <span>LINE</span>
           <span id="bowl-aim-summary" style="color:var(--gold);">OFF • GOOD</span>
         </div>
@@ -2556,7 +2784,7 @@
           <button class="bowl-opt-btn" data-line="middle">Middle</button>
           <button class="bowl-opt-btn" data-line="leg">Leg</button>
         </div>
-        <div style="font-size:9px;font-weight:900;color:var(--text-dim);">LENGTH (OR SWIPE)</div>
+        <div class="bowl-label-row"><span>LENGTH (OR SWIPE)</span></div>
         <div class="bowl-btn-row cols-4" id="bowl-length-row">
           <button class="bowl-opt-btn" data-length="yorker">Yorker</button>
           <button class="bowl-opt-btn" data-length="full">Full</button>
@@ -2566,7 +2794,7 @@
         <div class="pace-track">
           <div id="pace-needle" class="pace-needle"></div>
         </div>
-        <button id="btn-bowl-deliver" class="swing-cta" style="padding:8px;font-size:11.5px;">TAP TO LOCK PACE &amp; BOWL</button>
+        <button id="btn-bowl-deliver" class="swing-cta bowl-deliver-btn">TAP TO LOCK PACE &amp; BOWL</button>
       </div>
     </div>
   </div>
@@ -12354,7 +12582,6 @@
         } else {
           this.overRunRates[this.overRunRates.length - 1] = point;
         }
-        UI.renderRunRateChart(true);
       }
 
       const isSpecial = (this.lastOutcome === 'SIX' || this.lastOutcome === 'BOWLED' || this.lastOutcome === 'CAUGHT');
@@ -13388,8 +13615,6 @@
     tossPlayerBatsFirst: true,
     resultTabInn: 1,
     swipeStart: null,
-    rrPanelPinned: false,
-    rrAutoTimer: null,
 
     init() {
       this.refreshMenu();
@@ -13731,33 +13956,6 @@
         camDebug.open = false;
         camPanel.classList.add('hidden');
       };
-      const rrPanel = document.getElementById('hud-rr-panel');
-      const btnHudRR = document.getElementById('btn-hud-rr');
-      const btnRRClose = document.getElementById('btn-rr-close');
-      if (btnHudRR && rrPanel) {
-        btnHudRR.onclick = (e) => {
-          e.stopPropagation();
-          AudioEngine.playClick();
-          this.rrPanelPinned = !this.rrPanelPinned;
-          if (this.rrAutoTimer) {
-            clearTimeout(this.rrAutoTimer);
-            this.rrAutoTimer = null;
-          }
-          rrPanel.classList.toggle('hidden', !this.rrPanelPinned);
-          if (this.rrPanelPinned) this.renderRunRateChart(false);
-        };
-      }
-      if (btnRRClose && rrPanel) {
-        btnRRClose.onclick = (e) => {
-          e.stopPropagation();
-          this.rrPanelPinned = false;
-          if (this.rrAutoTimer) {
-            clearTimeout(this.rrAutoTimer);
-            this.rrAutoTimer = null;
-          }
-          rrPanel.classList.add('hidden');
-        };
-      }
       document.getElementById('btn-cam-reset').onclick = (e) => {
         e.stopPropagation();
         AudioEngine.playClick();
@@ -14801,8 +14999,10 @@
     },
 
     syncModeControls(isBatting) {
+      const hudBottom = document.getElementById('hud-bottom');
       const batWrap = document.getElementById('batting-controls-wrap');
       const bowlWrap = document.getElementById('bowling-controls-wrap');
+      if (hudBottom) hudBottom.classList.toggle('is-bowling', !isBatting);
       batWrap.classList.toggle('hidden', !isBatting);
       bowlWrap.classList.toggle('hidden', isBatting);
       if (!isBatting) {
@@ -14858,185 +15058,6 @@
       card.classList.add('show');
       clearTimeout(this.introCardTimer);
       this.introCardTimer = setTimeout(() => card.classList.remove('show'), 2500);
-    },
-
-    renderRunRateChart(autoPeek = false) {
-      const panel = document.getElementById('hud-rr-panel');
-      const svgEl = document.getElementById('hud-rr-svg');
-      if (!panel || !svgEl) return;
-
-      const g = Game;
-      const currPts = Array.isArray(g.overRunRates) ? g.overRunRates : [];
-      const prevInn = g.inningsNum === 2 && g.inningsHistory && g.inningsHistory[0] ? g.inningsHistory[0] : null;
-      const prevPts = prevInn && Array.isArray(prevInn.overRunRates) ? prevInn.overRunRates : [];
-
-      const badge = document.getElementById('hud-rr-badge');
-      const legCurr = document.getElementById('hud-rr-leg-curr');
-      const legPrevWrap = document.getElementById('hud-rr-leg-prev-wrap');
-      const subEl = document.getElementById('hud-rr-sub');
-
-      const liveCRR = g.ballsBowled > 0 ? ((g.score / g.ballsBowled) * 6).toFixed(2) : '0.00';
-      if (badge) {
-        if (g.inningsNum === 2 && g.target !== null) {
-          const ballsLeft = Math.max(0, g.totalBalls - g.ballsBowled);
-          const need = Math.max(0, g.target - g.score);
-          const rrr = ballsLeft > 0 ? ((need / ballsLeft) * 6).toFixed(2) : '0.00';
-          badge.textContent = `CRR ${liveCRR} • RRR ${rrr}`;
-        } else {
-          badge.textContent = `CRR ${liveCRR}`;
-        }
-      }
-      if (legCurr) legCurr.textContent = g.battingTeam ? g.battingTeam.short : 'Current';
-      if (legPrevWrap) legPrevWrap.classList.toggle('hidden', prevPts.length === 0);
-      if (subEl) {
-        subEl.textContent = currPts.length
-          ? `After ${currPts[currPts.length - 1].over} ov`
-          : `0 / ${g.oversLimit || 2} ov`;
-      }
-
-      if (d3) {
-        const W = 284;
-        const H = 112;
-        const m = { top: 10, right: 12, bottom: 20, left: 26 };
-        const iw = W - m.left - m.right;
-        const ih = H - m.top - m.bottom;
-
-        const svg = d3.select(svgEl);
-        svg.selectAll('*').remove();
-
-        const defs = svg.append('defs');
-        const grad = defs.append('linearGradient')
-          .attr('id', 'rrAreaGrad')
-          .attr('x1', '0%').attr('y1', '0%')
-          .attr('x2', '0%').attr('y2', '100%');
-        grad.append('stop').attr('offset', '0%').attr('stop-color', '#19c37d').attr('stop-opacity', 0.36);
-        grad.append('stop').attr('offset', '100%').attr('stop-color', '#19c37d').attr('stop-opacity', 0.02);
-
-        const root = svg.append('g').attr('transform', `translate(${m.left},${m.top})`);
-
-        const maxOver = Math.max(
-          g.oversLimit || 2,
-          currPts.length ? currPts[currPts.length - 1].over : 1,
-          prevPts.length ? prevPts[prevPts.length - 1].over : 1
-        );
-        const allRates = [...currPts.map(d => d.crr), ...prevPts.map(d => d.crr)];
-        const maxRR = Math.max(12, Math.ceil((d3.max(allRates) || 10) / 4) * 4);
-
-        const x = d3.scaleLinear().domain([0, maxOver]).range([0, iw]);
-        const y = d3.scaleLinear().domain([0, maxRR]).range([ih, 0]);
-
-        // Horizontal gridlines & Y-axis labels
-        const yTicks = y.ticks(4);
-        root.selectAll('.rr-grid')
-          .data(yTicks)
-          .join('line')
-          .attr('x1', 0).attr('x2', iw)
-          .attr('y1', d => y(d)).attr('y2', d => y(d))
-          .attr('stroke', 'rgba(255,255,255,0.10)')
-          .attr('stroke-dasharray', '2,3');
-
-        root.selectAll('.rr-ylabel')
-          .data(yTicks)
-          .join('text')
-          .attr('x', -5)
-          .attr('y', d => y(d) + 3)
-          .attr('text-anchor', 'end')
-          .attr('fill', 'rgba(216,228,247,0.68)')
-          .attr('font-size', '8.5px')
-          .attr('font-weight', '700')
-          .text(d => d);
-
-        // X-axis over ticks
-        const xTickVals = d3.range(1, Math.ceil(maxOver) + 1);
-        root.selectAll('.rr-xlabel')
-          .data(xTickVals)
-          .join('text')
-          .attr('x', d => x(d))
-          .attr('y', ih + 13)
-          .attr('text-anchor', 'middle')
-          .attr('fill', 'rgba(216,228,247,0.68)')
-          .attr('font-size', '8.5px')
-          .attr('font-weight', '700')
-          .text(d => `O${d}`);
-
-        const lineGen = d3.line()
-          .x(d => x(d.over))
-          .y(d => y(d.crr))
-          .curve(d3.curveMonotoneX);
-
-        const areaGen = d3.area()
-          .x(d => x(d.over))
-          .y0(ih)
-          .y1(d => y(d.crr))
-          .curve(d3.curveMonotoneX);
-
-        // Optional 1st-innings dashed comparison curve
-        if (prevPts.length > 0) {
-          const prevSeries = [{ over: 0, crr: prevPts[0].crr }, ...prevPts];
-          root.append('path')
-            .datum(prevSeries)
-            .attr('fill', 'none')
-            .attr('stroke', '#f5b932')
-            .attr('stroke-width', 1.6)
-            .attr('stroke-dasharray', '4,3')
-            .attr('opacity', 0.85)
-            .attr('d', lineGen);
-        }
-
-        if (currPts.length === 0) {
-          root.append('text')
-            .attr('x', iw / 2)
-            .attr('y', ih / 2 + 3)
-            .attr('text-anchor', 'middle')
-            .attr('fill', 'rgba(216,228,247,0.58)')
-            .attr('font-size', '10px')
-            .attr('font-weight', '700')
-            .text('Updates at the end of each over');
-        } else {
-          const currSeries = [{ over: 0, crr: currPts[0].crr }, ...currPts];
-          root.append('path')
-            .datum(currSeries)
-            .attr('fill', 'url(#rrAreaGrad)')
-            .attr('d', areaGen);
-
-          root.append('path')
-            .datum(currSeries)
-            .attr('fill', 'none')
-            .attr('stroke', '#19c37d')
-            .attr('stroke-width', 2.4)
-            .attr('stroke-linecap', 'round')
-            .attr('d', lineGen);
-
-          root.selectAll('.rr-pt')
-            .data(currPts)
-            .join('circle')
-            .attr('cx', d => x(d.over))
-            .attr('cy', d => y(d.crr))
-            .attr('r', d => (d.wicketInOver ? 4.2 : 3.2))
-            .attr('fill', d => (d.wicketInOver ? '#ff4b6a' : '#19c37d'))
-            .attr('stroke', '#08101f')
-            .attr('stroke-width', 1.4);
-
-          const last = currPts[currPts.length - 1];
-          root.append('text')
-            .attr('x', Math.min(iw - 2, x(last.over) + 4))
-            .attr('y', Math.max(9, y(last.crr) - 6))
-            .attr('text-anchor', x(last.over) > iw - 34 ? 'end' : 'start')
-            .attr('fill', '#e9f2ff')
-            .attr('font-size', '9px')
-            .attr('font-weight', '900')
-            .text(last.crr.toFixed(1));
-        }
-      }
-
-      if (autoPeek && !this.rrPanelPinned) {
-        panel.classList.remove('hidden');
-        if (this.rrAutoTimer) clearTimeout(this.rrAutoTimer);
-        this.rrAutoTimer = setTimeout(() => {
-          if (!this.rrPanelPinned) panel.classList.add('hidden');
-          this.rrAutoTimer = null;
-        }, 3600);
-      }
     },
 
     updateHUD() {
@@ -16356,6 +16377,10 @@
   }
   window.addEventListener('resize', onResize);
   window.addEventListener('orientationchange', () => setTimeout(onResize, 120));
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
+  if (window.screen && window.screen.orientation && typeof window.screen.orientation.addEventListener === 'function') {
+    window.screen.orientation.addEventListener('change', () => setTimeout(onResize, 120));
+  }
 
   let frameId = 0;
   function afterDraw(cb) {
@@ -16482,21 +16507,27 @@
     </div>
   </div>
 
-  <!-- PWA iOS Install Guide Modal & Offline Indicator -->
-  <div id="pwa-ios-modal" class="modal-backdrop hidden" style="z-index:9999;">
-    <div class="modal-card" style="max-width:360px;text-align:left;">
+  <!-- PWA Smart Download / Install Guide Modal & Rotate/Offline Toasts -->
+  <div id="pwa-install-modal" class="modal-backdrop hidden" style="z-index:9999;">
+    <div class="modal-card" style="max-width:380px;text-align:left;">
       <div class="modal-header">
-        <div class="modal-title">Install on iPhone / iPad</div>
-        <button id="btn-pwa-ios-close" class="btn btn-sm">✕</button>
+        <div id="pwa-modal-title" class="modal-title">Download Sixer Pro 3D</div>
+        <button id="btn-pwa-modal-close" class="btn btn-sm">✕</button>
       </div>
-      <div style="font-size:13px;line-height:1.55;color:var(--text-dim);margin:8px 0 14px;">
-        1. Tap the <strong style="color:var(--text-main);">Share</strong> button in Safari's bottom toolbar.<br />
-        2. Scroll down and tap <strong style="color:var(--gold);">Add to Home Screen</strong>.<br />
-        3. Tap <strong style="color:var(--text-main);">Add</strong> to launch Sixer Pro Cricket 3D full-screen.
+      <div id="pwa-modal-body" style="font-size:13px;line-height:1.55;color:var(--text-dim);margin:8px 0 14px;">
+        1. Tap browser menu <strong style="color:var(--text-main);">⋮</strong> (top right).<br />
+        2. Tap <strong style="color:var(--gold);">Install app</strong> or <strong style="color:var(--gold);">Add to Home screen</strong>.<br />
+        3. Launch Sixer Pro Cricket 3D full-screen offline anytime!
       </div>
-      <button id="btn-pwa-ios-ok" class="btn btn-primary" style="width:100%;">Got It</button>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button id="btn-pwa-modal-prompt" class="btn btn-primary hidden" style="width:100%;">📲 Install App Now</button>
+        <a id="btn-pwa-open-browser" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-emerald hidden" style="width:100%;text-align:center;text-decoration:none;">🌐 Open in Full Browser to Download</a>
+        <button id="btn-pwa-copy-link" class="btn" style="width:100%;">🔗 Copy Game Link</button>
+        <button id="btn-pwa-modal-ok" class="btn" style="width:100%;">Close</button>
+      </div>
     </div>
   </div>
+  <div id="rotate-hint-toast" class="hidden" style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:9998;max-width:92vw;padding:8px 14px;border-radius:10px;background:rgba(15,23,42,0.95);border:1px solid var(--gold);color:#f8fafc;font-size:12px;font-weight:800;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,0.45);"></div>
   <div id="pwa-offline-banner" class="hidden" style="position:fixed;bottom:14px;left:14px;z-index:9998;display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:10px;background:rgba(245,158,11,0.94);color:#0b1220;font-size:12px;font-weight:800;box-shadow:0 8px 20px rgba(0,0,0,0.35);">
     <span>⚡</span>
     <span>Offline Mode — Playing from cached app</span>
@@ -16746,52 +16777,180 @@
       }
     })();
 
-    (function initPWA() {
+    (function initPWAAndOrientation() {
       const installBtn = document.getElementById('btn-pwa-install');
-      const iosModal = document.getElementById('pwa-ios-modal');
-      const iosClose = document.getElementById('btn-pwa-ios-close');
-      const iosOk = document.getElementById('btn-pwa-ios-ok');
+      const menuDownloadBtn = document.getElementById('btn-menu-download');
+      const modal = document.getElementById('pwa-install-modal');
+      const modalTitle = document.getElementById('pwa-modal-title');
+      const modalBody = document.getElementById('pwa-modal-body');
+      const modalClose = document.getElementById('btn-pwa-modal-close');
+      const modalOk = document.getElementById('btn-pwa-modal-ok');
+      const modalPromptBtn = document.getElementById('btn-pwa-modal-prompt');
+      const openBrowserLink = document.getElementById('btn-pwa-open-browser');
+      const copyLinkBtn = document.getElementById('btn-pwa-copy-link');
       const offlineBanner = document.getElementById('pwa-offline-banner');
+      const rotateToast = document.getElementById('rotate-hint-toast');
+      const btnMenuRotate = document.getElementById('btn-menu-rotate');
+      const btnHudRotate = document.getElementById('btn-hud-rotate');
 
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-      const isIOS = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
-      let deferredPrompt = null;
+      const ua = (window.navigator.userAgent || '').toLowerCase();
+      const isIOS = /iphone|ipad|ipod/.test(ua);
+      const isInAppBrowser = /(fban|fbav|instagram|whatsapp|telegram|snapchat|line|micromessenger|wv\b)/.test(ua);
+      const isInIframe = (() => { try { return window.self !== window.top; } catch (_) { return true; } })();
 
-      if (!isStandalone && isIOS && installBtn) {
-        installBtn.classList.remove('hidden');
-      }
+      let deferredPrompt = window.__pwaDeferredPrompt || null;
 
+      const setButtonsVisible = (show) => {
+        if (installBtn) installBtn.classList.toggle('hidden', !show);
+        if (menuDownloadBtn) menuDownloadBtn.classList.toggle('hidden', !show);
+      };
+
+      // Always show Download/Install buttons unless already running as an installed app
+      setButtonsVisible(!isStandalone);
+
+      const syncPromptReady = () => {
+        deferredPrompt = window.__pwaDeferredPrompt || deferredPrompt;
+        if (modalPromptBtn) {
+          modalPromptBtn.classList.toggle('hidden', !deferredPrompt);
+        }
+      };
+      syncPromptReady();
+
+      window.addEventListener('sixer-pwa-prompt-ready', syncPromptReady);
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        if (!isStandalone && installBtn) {
-          installBtn.classList.remove('hidden');
-        }
+        window.__pwaDeferredPrompt = e;
+        syncPromptReady();
+        if (!isStandalone) setButtonsVisible(true);
       });
 
       window.addEventListener('appinstalled', () => {
         deferredPrompt = null;
-        if (installBtn) installBtn.classList.add('hidden');
+        window.__pwaDeferredPrompt = null;
+        setButtonsVisible(false);
+        if (modal) modal.classList.add('hidden');
       });
 
-      if (installBtn) {
-        installBtn.addEventListener('click', async () => {
-          if (deferredPrompt) {
-            await deferredPrompt.prompt();
-            const choice = await deferredPrompt.userChoice;
+      const showHint = (msg) => {
+        if (!rotateToast) return;
+        rotateToast.textContent = msg;
+        rotateToast.classList.remove('hidden');
+        clearTimeout(showHint._t);
+        showHint._t = setTimeout(() => rotateToast.classList.add('hidden'), 3200);
+      };
+
+      const openSmartInstallModal = () => {
+        if (!modal) return;
+        const pageUrl = window.location.href;
+        if (openBrowserLink) {
+          openBrowserLink.href = pageUrl;
+          openBrowserLink.classList.toggle('hidden', !(isInIframe || isInAppBrowser));
+        }
+        syncPromptReady();
+
+        if (isInIframe) {
+          if (modalTitle) modalTitle.textContent = 'Open in Browser to Download';
+          if (modalBody) {
+            modalBody.innerHTML =
+              'Shared preview frame ke andar direct download blocked hota hai.<br /><br />' +
+              '1. Neeche <strong style="color:var(--emerald);">Open in Full Browser</strong> tap karein.<br />' +
+              '2. Browser khulne par <strong style="color:var(--gold);">Download App</strong> ya menu <strong style="color:var(--text-main);">⋮ → Install app</strong> tap karein.';
+          }
+        } else if (isInAppBrowser) {
+          if (modalTitle) modalTitle.textContent = 'Download from Chrome / Safari';
+          if (modalBody) {
+            modalBody.innerHTML =
+              'Aapne link WhatsApp / social in-app browser mein khola hai.<br /><br />' +
+              '1. Top-right <strong style="color:var(--text-main);">⋮</strong> ya <strong style="color:var(--text-main);">⋯</strong> menu tap karein.<br />' +
+              '2. <strong style="color:var(--gold);">Open in Chrome</strong> (ya Safari) select karein.<br />' +
+              '3. Wahan <strong style="color:var(--emerald);">Download App</strong> tap karke phone par install karein!';
+          }
+        } else if (isIOS) {
+          if (modalTitle) modalTitle.textContent = 'Install on iPhone / iPad';
+          if (modalBody) {
+            modalBody.innerHTML =
+              '1. Safari toolbar mein <strong style="color:var(--text-main);">Share</strong> button tap karein.<br />' +
+              '2. Neeche scroll karke <strong style="color:var(--gold);">Add to Home Screen</strong> tap karein.<br />' +
+              '3. <strong style="color:var(--text-main);">Add</strong> tap karein — game icon ke saath install ho jayegi!';
+          }
+        } else {
+          if (modalTitle) modalTitle.textContent = 'Download & Install Sixer Pro 3D';
+          if (modalBody) {
+            modalBody.innerHTML =
+              '1. Browser ke top-right menu <strong style="color:var(--text-main);">⋮</strong> (ya address bar install icon) par tap karein.<br />' +
+              '2. <strong style="color:var(--gold);">Install app</strong> / <strong style="color:var(--gold);">Add to Home screen</strong> select karein.<br />' +
+              '3. Game home screen par save ho jayegi aur offline bhi chalegi!';
+          }
+        }
+        modal.classList.remove('hidden');
+      };
+
+      const triggerDownloadOrInstall = async () => {
+        const promptEvt = window.__pwaDeferredPrompt || deferredPrompt;
+        if (promptEvt) {
+          try {
+            await promptEvt.prompt();
+            const choice = await promptEvt.userChoice;
             if (choice && choice.outcome === 'accepted') {
               deferredPrompt = null;
-              installBtn.classList.add('hidden');
+              window.__pwaDeferredPrompt = null;
+              setButtonsVisible(false);
+              if (modal) modal.classList.add('hidden');
+              return;
             }
-          } else if (isIOS && iosModal) {
-            iosModal.classList.remove('hidden');
+          } catch (_) {}
+        }
+        openSmartInstallModal();
+      };
+
+      if (installBtn) installBtn.addEventListener('click', triggerDownloadOrInstall);
+      if (menuDownloadBtn) menuDownloadBtn.addEventListener('click', triggerDownloadOrInstall);
+      if (modalPromptBtn) modalPromptBtn.addEventListener('click', triggerDownloadOrInstall);
+
+      if (copyLinkBtn) {
+        copyLinkBtn.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(window.location.href);
+            showHint('Game link copied! Chrome ya Safari mein paste karke install karein.');
+          } catch (_) {
+            showHint('Address bar se link copy karke Chrome mein open karein.');
           }
         });
       }
 
-      const closeIOS = () => { if (iosModal) iosModal.classList.add('hidden'); };
-      if (iosClose) iosClose.addEventListener('click', closeIOS);
-      if (iosOk) iosOk.addEventListener('click', closeIOS);
+      const closeModal = () => { if (modal) modal.classList.add('hidden'); };
+      if (modalClose) modalClose.addEventListener('click', closeModal);
+      if (modalOk) modalOk.addEventListener('click', closeModal);
+
+      // Rotate Screen handler (Landscape <-> Portrait)
+      const toggleRotateScreen = async (e) => {
+        if (e) e.stopPropagation();
+        const isLandscapeNow = window.innerWidth > window.innerHeight;
+        const targetMode = isLandscapeNow ? 'portrait' : 'landscape';
+        let locked = false;
+        try {
+          if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen().catch(() => {});
+          }
+          if (window.screen && window.screen.orientation && typeof window.screen.orientation.lock === 'function') {
+            await window.screen.orientation.lock(targetMode);
+            locked = true;
+          }
+        } catch (_) {
+          locked = false;
+        }
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 140);
+        if (locked) {
+          showHint(targetMode === 'landscape' ? 'Landscape Mode ON!' : 'Portrait Mode ON!');
+        } else {
+          showHint('Phone ka Auto-Rotate ON karke screen side par ghuma lein — Landscape mode ready hai!');
+        }
+      };
+
+      if (btnMenuRotate) btnMenuRotate.addEventListener('click', toggleRotateScreen);
+      if (btnHudRotate) btnHudRotate.addEventListener('click', toggleRotateScreen);
 
       const syncOnline = () => {
         if (!offlineBanner) return;
