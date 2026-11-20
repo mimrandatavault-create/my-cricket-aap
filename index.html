@@ -3265,6 +3265,12 @@
                 <label class="admin-label" for="admin-char-file">Or Upload Local .GLB / .GLTF File (Instant Preview)</label>
                 <input id="admin-char-file" class="admin-input" type="file" accept=".glb,.gltf" style="padding:6px;" />
               </div>
+              <div id="admin-char-submodel-wrap" class="admin-field full" style="display:none;">
+                <label class="admin-label" for="admin-char-submodel">Pack Character Picker (Auto-Split Multi-Character .GLB)</label>
+                <select id="admin-char-submodel" class="admin-select">
+                  <option value="auto">Auto-Assign (1 Character per Role)</option>
+                </select>
+              </div>
             </div>
             <div id="admin-char-status" style="font-size:11px;color:var(--text-dim);margin:6px 0 8px;">Active: Built-in 3D Players (Default)</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -3597,10 +3603,21 @@
     return target;
   }
 
+  function isBrokenStaticPackUrl(u) {
+    return /j6pxcs\.glb|cricket_pack\.glb|viby9b\.glb|custom_player\.glb/i.test(String(u || ''));
+  }
+
   async function loadRemoteConfig() {
     try {
       const cached = localStorage.getItem(STORAGE_KEYS.REMOTE_CFG);
-      if (cached) deepMerge(CONFIG, JSON.parse(cached));
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && isBrokenStaticPackUrl(parsed.CHARACTER_MODEL_URL)) {
+          parsed.CHARACTER_MODEL_URL = '';
+          localStorage.setItem(STORAGE_KEYS.REMOTE_CFG, JSON.stringify(parsed));
+        }
+        deepMerge(CONFIG, parsed);
+      }
     } catch (_) {}
 
     if (!CONFIG.REMOTE_CONFIG_URL) return;
@@ -3611,6 +3628,9 @@
       clearTimeout(t);
       if (res.ok) {
         const json = await res.json();
+        if (json && isBrokenStaticPackUrl(json.CHARACTER_MODEL_URL)) {
+          json.CHARACTER_MODEL_URL = '';
+        }
         deepMerge(CONFIG, json);
         localStorage.setItem(STORAGE_KEYS.REMOTE_CFG, JSON.stringify(json));
       }
@@ -5424,6 +5444,13 @@
         }
       } catch (_) {}
 
+      if (this.data.gameSettings && isBrokenStaticPackUrl(this.data.gameSettings.customCharacterUrl)) {
+        this.data.gameSettings.customCharacterUrl = '';
+        try {
+          if (!this.isStrippedBuild) localStorage.setItem(STORAGE_KEYS.ADMIN, JSON.stringify(this.data));
+        } catch (_) {}
+      }
+
       this.syncConfigFlags();
     },
 
@@ -5450,7 +5477,8 @@
       CONFIG.AD_INTERSTITIAL_FREQUENCY = Math.max(1, parseInt(sl.interstitialFrequency, 10) || 2);
       const gs = this.data.gameSettings || {};
       if (typeof gs.customCharacterUrl === 'string') {
-        CONFIG.CHARACTER_MODEL_URL = gs.customCharacterUrl.trim();
+        const cleanUrl = gs.customCharacterUrl.trim();
+        CONFIG.CHARACTER_MODEL_URL = isBrokenStaticPackUrl(cleanUrl) ? '' : cleanUrl;
       }
     },
 
@@ -6758,6 +6786,10 @@
         // Apply 'all' first, then role-specific overrides (batter, bowler, keeper, fielder)
         rows.sort((a, b) => (a.role === 'all' ? -1 : b.role === 'all' ? 1 : 0));
         for (const row of rows) {
+          if (row && row.name && isBrokenStaticPackUrl(row.name)) {
+            await this.remove(row.role);
+            continue;
+          }
           if (row && row.data) {
             const blob = new Blob([row.data], { type: 'model/gltf-binary' });
             const url = URL.createObjectURL(blob);
@@ -6771,7 +6803,10 @@
   let loadedCharacterTemplate = null;
   const customRoleModels = { all: null, batter: null, bowler: null, keeper: null, fielder: null };
   async function tryLoadCharacterGLTF(urlOverride = null, targetRole = 'all') {
-    const modelUrl = urlOverride !== null ? urlOverride : CONFIG.CHARACTER_MODEL_URL;
+    let modelUrl = urlOverride !== null ? urlOverride : CONFIG.CHARACTER_MODEL_URL;
+    if (isBrokenStaticPackUrl(modelUrl)) {
+      modelUrl = '';
+    }
     if (!modelUrl) {
       if (targetRole === 'all') loadedCharacterTemplate = null;
       customRoleModels[targetRole] = null;
@@ -9362,31 +9397,32 @@
       new THREE.CylinderGeometry(0.016, 0.017, 0.28, 10),
       new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.7 })
     );
-    handle.position.y = -0.10;
+    handle.position.y = -0.04;
     batGroup.add(handle);
     const blade = new THREE.Mesh(
       new THREE.BoxGeometry(0.108, 0.56, 0.038),
       new THREE.MeshStandardMaterial({ color: '#e7c68c', roughness: 0.45, metalness: 0.04 })
     );
-    blade.position.y = -0.50;
+    blade.position.y = -0.44;
     blade.castShadow = !isSoftwareGl;
     batGroup.add(blade);
     const sticker = new THREE.Mesh(
       new THREE.BoxGeometry(0.088, 0.24, 0.041),
       new THREE.MeshStandardMaterial({ color: '#f97316', roughness: 0.35 })
     );
-    sticker.position.y = -0.44;
+    sticker.position.y = -0.40;
     batGroup.add(sticker);
     return batGroup;
   }
 
-  // World-space right-hand socket helper (works for both procedural rigs and custom GLB skeletons)
+  // World-space throwing/bottom-hand socket helper (works for both procedural rigs and custom GLB skeletons)
   const _handWorldTmp = new THREE.Vector3();
   function getRigRightHandWorldPos(rig, outVec) {
     if (!rig || !rig.root) return outVec.set(0, 1.5, 0);
     rig.root.updateMatrixWorld(true);
-    if (rig._customGLBData && rig._customGLBData.bones && rig._customGLBData.bones.rHand) {
-      rig._customGLBData.bones.rHand.getWorldPosition(outVec);
+    const glbBones = rig._customGLBData && rig._customGLBData.bones;
+    if (glbBones && (glbBones.bowlHand || glbBones.rHand)) {
+      (glbBones.bowlHand || glbBones.rHand).getWorldPosition(outVec);
       return outVec;
     }
     if (rig.joints && rig.joints.rightArm && rig.joints.rightArm.elbow) {
@@ -9454,9 +9490,137 @@
     return { modelPivot, normScale };
   }
 
+  // Detect multi-character .GLB packs (e.g. 12 characters standing side-by-side in one file)
+  // and extract each individual character node so only 1 character is placed per player role
+  let _lastLoadedCustomGLTF = null;
+  function extractPackSubCharacters(sceneRoot) {
+    if (!sceneRoot) return [];
+    const hasMesh = (node) => {
+      let found = false;
+      node.traverse((o) => { if (o.isMesh || o.isSkinnedMesh) found = true; });
+      return found;
+    };
+    let container = sceneRoot;
+    for (let depth = 0; depth < 6; depth++) {
+      const meshKids = container.children.filter((ch) => !ch.isLight && !ch.isCamera && hasMesh(ch));
+      if (meshKids.length === 1 && meshKids[0].children && meshKids[0].children.length > 0) {
+        container = meshKids[0];
+      } else {
+        break;
+      }
+    }
+    const candidates = container.children.filter((ch) => !ch.isLight && !ch.isCamera && hasMesh(ch));
+    if (candidates.length < 2) return [];
+    // Confirm candidates are distinct separated characters (not body parts of 1 single character)
+    container.updateMatrixWorld(true);
+    const centers = candidates.map((ch) => {
+      const b = new THREE.Box3().setFromObject(ch);
+      const c = new THREE.Vector3();
+      b.getCenter(c);
+      return c;
+    });
+    let maxSpreadXZ = 0;
+    for (let i = 0; i < centers.length; i++) {
+      for (let j = i + 1; j < centers.length; j++) {
+        const d = Math.hypot(centers[i].x - centers[j].x, centers[i].z - centers[j].z);
+        if (d > maxSpreadXZ) maxSpreadXZ = d;
+      }
+    }
+    // If sub-nodes are spread apart horizontally (> 0.65 units), treat as a multi-character pack
+    return maxSpreadXZ > 0.65 ? candidates : [];
+  }
+
   // Live-swap custom uploaded/URL .GLB/.GLTF model onto all or role-specific on-field players
-  // Automatically aligns pivot, ground contact (Y=0), height scale, and facing direction 1:1 with original player
+  // Automatically splits multi-character .GLB packs (1 character per role) and aligns pivot, Y=0 ground contact & scale
   function applyCustomGLBToLivePlayers(gltf, targetRole = 'all') {
+    if (gltf && gltf.scene) _lastLoadedCustomGLTF = gltf;
+    const packChars = (gltf && gltf.scene) ? extractPackSubCharacters(gltf.scene) : [];
+
+    // Populate or hide the Pack Character Picker dropdown in Admin Console
+    const subWrap = document.getElementById('admin-char-submodel-wrap');
+    const subSel = document.getElementById('admin-char-submodel');
+    let selectedPackChoice = 'auto';
+    if (subWrap && subSel) {
+      if (packChars.length >= 2) {
+        const prevVal = subSel.value || 'auto';
+        if (subSel.dataset.count !== String(packChars.length)) {
+          subSel.innerHTML = `<option value="auto">Auto-Assign (${packChars.length} Characters Detected)</option>` +
+            packChars.map((ch, idx) => {
+              const cleanName = (ch.name || `Character ${idx + 1}`).replace(/_/g, ' ').slice(0, 32);
+              return `<option value="${idx}">#${idx + 1} — ${cleanName}</option>`;
+            }).join('');
+          subSel.dataset.count = String(packChars.length);
+          subSel.value = 'auto';
+          subSel.onchange = () => {
+            if (_lastLoadedCustomGLTF) {
+              const roleSel = document.getElementById('admin-char-role');
+              applyCustomGLBToLivePlayers(_lastLoadedCustomGLTF, roleSel ? roleSel.value : 'all');
+            }
+          };
+        } else {
+          subSel.value = prevVal;
+        }
+        subWrap.style.display = 'block';
+        selectedPackChoice = subSel.value || 'auto';
+      } else {
+        subWrap.style.display = 'none';
+        subSel.dataset.count = '0';
+      }
+    }
+
+    const matchTeamPackNode = (team) => {
+      if (!team || packChars.length < 2) return null;
+      const tName = `${team.name || ''} ${team.short || ''}`.toLowerCase();
+      const aliasMap = [
+        { re: /india|ind\b/, pack: /india/ },
+        { re: /pakistan|pak\b/, pack: /pakistan/ },
+        { re: /australia|aus\b/, pack: /australia/ },
+        { re: /england|eng\b/, pack: /england/ },
+        { re: /new\s*zealand|nz\b/, pack: /newz/ },
+        { re: /south\s*africa|sa\b/, pack: /south\s*africa/ },
+        { re: /sri\s*lanka|sl\b/, pack: /sri\s*lanka/ },
+        { re: /bangladesh|ban\b/, pack: /bangladesh/ },
+        { re: /afghanistan|afg\b/, pack: /afghanistan/ },
+        { re: /west\s*indies|wi\b/, pack: /west\s*indies/ },
+      ];
+      for (let i = 0; i < aliasMap.length; i++) {
+        if (aliasMap[i].re.test(tName)) {
+          const found = packChars.find((ch) => aliasMap[i].pack.test((ch.name || '').toLowerCase()));
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const isTeamJerseyPack = packChars.length >= 2 && packChars.some((ch) => /india|pakistan|australia|england/i.test(ch.name || ''));
+
+    const pickPackCharacter = (role, entryIdx, rig) => {
+      if (packChars.length < 2) return gltf.scene;
+      if (selectedPackChoice !== 'auto') {
+        const idx = parseInt(selectedPackChoice, 10);
+        if (!Number.isNaN(idx) && packChars[idx]) return packChars[idx];
+      }
+      if (isTeamJerseyPack && rig && rig._lastKit && rig._lastKit.team) {
+        const teamNode = matchTeamPackNode(rig._lastKit.team);
+        if (teamNode) return teamNode;
+      }
+      const roleRegex = {
+        batter: /bat|striker/,
+        nonstriker: /bat|non/,
+        bowler: /bowl|pitch/,
+        keeper: /keep|wk|glove/,
+        umpire: /umpire|ref/,
+        fielder: /field/,
+      }[role];
+      if (roleRegex) {
+        const named = packChars.find((ch) => roleRegex.test((ch.name || '').toLowerCase()));
+        if (named) return named;
+      }
+      const baseIdx = { batter: 0, nonstriker: 1, bowler: 2, keeper: 3, umpire: 4, fielder: 5 }[role] ?? 0;
+      const offset = role === 'fielder' ? entryIdx : 0;
+      return packChars[(baseIdx + offset) % packChars.length];
+    };
+
     const entries = [
       { rig: batterRig, role: 'batter' },
       { rig: nonStrikerRig, role: 'nonstriker' },
@@ -9467,7 +9631,7 @@
       ...fielders.map(f => ({ rig: f.rig, role: 'fielder' })),
     ];
 
-    entries.forEach(({ rig, role }) => {
+    entries.forEach(({ rig, role }, entryIdx) => {
       if (!rig || !rig.root) return;
       const matchesRole =
         targetRole === 'all' ||
@@ -9488,6 +9652,9 @@
         return;
       }
 
+      // Keep umpires in their built-in umpire uniform when auto-applying a team-jersey pack to 'all'
+      if (isTeamJerseyPack && targetRole === 'all' && role === 'umpire') return;
+
       const targetHeight = measureRigHeight(rig);
       rig.root.children.forEach((ch) => { ch.visible = false; });
 
@@ -9495,11 +9662,19 @@
       wrapper.position.set(0, 0, 0);
       wrapper.rotation.set(0, 0, 0);
 
-      const clone = SkeletonUtils.clone(gltf.scene);
+      const sourceNode = pickPackCharacter(role, entryIdx, rig);
+      const clone = SkeletonUtils.clone(sourceNode);
+      clone.position.set(0, 0, 0);
       const bones = {};
       const meshes = [];
       clone.traverse((obj) => {
         if (obj.isMesh || obj.isSkinnedMesh) {
+          // Clone materials per player rig so batting & bowling teams wear distinct team kits
+          if (obj.material) {
+            obj.material = Array.isArray(obj.material)
+              ? obj.material.map((m) => (m ? m.clone() : m))
+              : obj.material.clone();
+          }
           obj.castShadow = !isSoftwareGl;
           obj.receiveShadow = true;
           obj.frustumCulled = false;
@@ -9511,33 +9686,87 @@
           const isRight = /(right|[._]r$|[._]r[._]|^r_|_r_|mixamorig:?right|bip01_r)/.test(n);
           const isLeft = /(left|[._]l$|[._]l[._]|^l_|_l_|mixamorig:?left|bip01_l)/.test(n);
           if (!bones.hips && /(hips|pelvis|root|bip01$)/.test(n)) bones.hips = obj;
-          if (!bones.spine && /(spine|torso|chest|abdomen)/.test(n)) bones.spine = obj;
+          if (!bones.chest && /(torso|chest|spine2|upperchest)/.test(n)) bones.chest = obj;
+          else if (!bones.spine && /(spine|abdomen)/.test(n)) bones.spine = obj;
           if (!bones.head && /head/.test(n)) bones.head = obj;
 
           if (isRight) {
             if (!bones.rFore && /(forearm|lower_?arm|elbow)/.test(n)) bones.rFore = obj;
-            else if (!bones.rHand && /(hand|wrist)/.test(n)) bones.rHand = obj;
-            else if (!bones.rArm && /(upper_?arm|arm|humerus)/.test(n) && !/(forearm|lower|hand|clavicle|collar)/.test(n)) bones.rArm = obj;
-            else if (!bones.rShin && /(shin|calf|lower_?leg|knee|rightleg|leg[._]r|r_leg)/.test(n) && !/(up|thigh)/.test(n)) bones.rShin = obj;
+            else if (/(middle_?hand)/.test(n)) bones.rHand = obj;
+            else if (!bones.rHand && /(hand|wrist|palm)/.test(n) && !/(middle|finger|thumb|index|pinky|ring)/.test(n)) bones.rHand = obj;
+            else if (!bones.rArm && /(upper_?arm|arm|humerus)/.test(n) && !/(forearm|lower|hand|palm|clavicle|collar|shoulder)/.test(n)) bones.rArm = obj;
+            else if (!bones.rShin && /(shin|calf|lower_?leg|knee|rightleg|leg[._]r|r_leg)/.test(n) && !/(up|thigh|_end)/.test(n)) bones.rShin = obj;
             else if (!bones.rLeg && /(upleg|thigh|upper_?leg)/.test(n)) bones.rLeg = obj;
+            else if (!bones.rFoot && /foot/.test(n) && !/_end/.test(n)) bones.rFoot = obj;
           } else if (isLeft) {
             if (!bones.lFore && /(forearm|lower_?arm|elbow)/.test(n)) bones.lFore = obj;
-            else if (!bones.lHand && /(hand|wrist)/.test(n)) bones.lHand = obj;
-            else if (!bones.lArm && /(upper_?arm|arm|humerus)/.test(n) && !/(forearm|lower|hand|clavicle|collar)/.test(n)) bones.lArm = obj;
-            else if (!bones.lShin && /(shin|calf|lower_?leg|knee|leftleg|leg[._]l|l_leg)/.test(n) && !/(up|thigh)/.test(n)) bones.lShin = obj;
+            else if (/(middle_?hand)/.test(n)) bones.lHand = obj;
+            else if (!bones.lHand && /(hand|wrist|palm)/.test(n) && !/(middle|finger|thumb|index|pinky|ring)/.test(n)) bones.lHand = obj;
+            else if (!bones.lArm && /(upper_?arm|arm|humerus)/.test(n) && !/(forearm|lower|hand|palm|clavicle|collar|shoulder)/.test(n)) bones.lArm = obj;
+            else if (!bones.lShin && /(shin|calf|lower_?leg|knee|leftleg|leg[._]l|l_leg)/.test(n) && !/(up|thigh|_end)/.test(n)) bones.lShin = obj;
             else if (!bones.lLeg && /(upleg|thigh|upper_?leg)/.test(n)) bones.lLeg = obj;
+            else if (!bones.lFoot && /foot/.test(n) && !/_end/.test(n)) bones.lFoot = obj;
           }
         }
       });
 
       const { modelPivot, normScale } = alignCustomGLBToGround(clone, targetHeight);
       wrapper.add(modelPivot);
-
-      // Record rest rotations & compute exact T-pose/A-pose -> arms-down rest quaternions
-      // so custom GLB models never stick arms out sideways in T-pose
       wrapper.updateMatrixWorld(true);
+
+      // If Foot.L/Foot.R are detached IK targets (siblings of Body instead of children of LowerLeg),
+      // attach them directly to LowerLeg in bind pose so shoes/ankles move naturally with leg strides
+      if (bones.rFoot && bones.rShin && bones.rFoot.parent !== bones.rShin) {
+        bones.rShin.attach(bones.rFoot);
+      }
+      if (bones.lFoot && bones.lShin && bones.lFoot.parent !== bones.lShin) {
+        bones.lShin.attach(bones.lFoot);
+      }
+      wrapper.updateMatrixWorld(true);
+
+      // Spatial-side check: match bones by their actual 3D side (+X vs -X) to procedural rig arms/legs
+      // so two-handed bat grip IK & leg strides align 1:1 in 3D space regardless of Blender L/R naming
+      const wpInv = wrapper.getWorldQuaternion(new THREE.Quaternion()).invert();
+      const getWrapperX = (b) => {
+        if (!b) return 0;
+        const p = new THREE.Vector3();
+        b.getWorldPosition(p);
+        wrapper.worldToLocal(p);
+        return p.x;
+      };
+      if (bones.rArm && bones.lArm && getWrapperX(bones.rArm) < 0 && getWrapperX(bones.lArm) > 0) {
+        bones.posXArm = bones.lArm;
+        bones.posXFore = bones.lFore;
+        bones.posXHand = bones.lHand;
+        bones.negXArm = bones.rArm;
+        bones.negXFore = bones.rFore;
+        bones.negXHand = bones.rHand;
+        bones.bowlHand = bones.lHand;
+      } else {
+        bones.posXArm = bones.rArm;
+        bones.posXFore = bones.rFore;
+        bones.posXHand = bones.rHand;
+        bones.negXArm = bones.lArm;
+        bones.negXFore = bones.lFore;
+        bones.negXHand = bones.lHand;
+        bones.bowlHand = bones.rHand;
+      }
+      if (bones.rLeg && bones.lLeg && getWrapperX(bones.rLeg) < 0 && getWrapperX(bones.lLeg) > 0) {
+        bones.posXLeg = bones.lLeg;
+        bones.posXShin = bones.lShin;
+        bones.negXLeg = bones.rLeg;
+        bones.negXShin = bones.rShin;
+      } else {
+        bones.posXLeg = bones.rLeg;
+        bones.posXShin = bones.rShin;
+        bones.negXLeg = bones.lLeg;
+        bones.negXShin = bones.lShin;
+      }
+
+      // Compute exact T-pose/A-pose -> arms-down rest quaternions so arms hang naturally at sides
       const restRot = {};
       const restQuat = {};
+      const neutralWrapperQ = {};
       const restHipsPos = bones.hips ? bones.hips.position.clone() : null;
       const alignArmDown = (upperBone, lowerBone) => {
         if (!upperBone) return null;
@@ -9561,23 +9790,28 @@
         return qAlign.multiply(baseQ);
       };
 
-      Object.keys(bones).forEach((k) => {
+      ['rArm', 'lArm'].forEach((k) => {
         const b = bones[k];
         if (!b) return;
-        restRot[k] = { x: b.rotation.x, y: b.rotation.y, z: b.rotation.z };
-        if (k === 'rArm') {
-          restQuat[k] = alignArmDown(bones.rArm, bones.rFore);
-          if (restQuat[k]) b.quaternion.copy(restQuat[k]);
-        } else if (k === 'lArm') {
-          restQuat[k] = alignArmDown(bones.lArm, bones.lFore);
-          if (restQuat[k]) b.quaternion.copy(restQuat[k]);
-        } else {
-          restQuat[k] = b.quaternion.clone();
+        const aligned = alignArmDown(b, k === 'rArm' ? bones.rFore : bones.lFore);
+        if (aligned) {
+          b.quaternion.copy(aligned);
+          restQuat[k] = aligned;
         }
       });
 
-      // Set up AnimationMixer if the GLB contains embedded animation clips,
-      // stripping root-motion position tracks so animations never displace the player off the pitch
+      wrapper.updateMatrixWorld(true);
+      const trackKeys = ['hips', 'spine', 'chest', 'head', 'posXArm', 'posXFore', 'negXArm', 'negXFore', 'posXLeg', 'posXShin', 'negXLeg', 'negXShin'];
+      trackKeys.forEach((k) => {
+        const b = bones[k];
+        if (!b) return;
+        restRot[k] = { x: b.rotation.x, y: b.rotation.y, z: b.rotation.z };
+        if (!restQuat[k]) restQuat[k] = b.quaternion.clone();
+        const bWorldQ = b.getWorldQuaternion(new THREE.Quaternion());
+        neutralWrapperQ[k] = wpInv.clone().multiply(bWorldQ);
+      });
+
+      // Set up AnimationMixer if the GLB contains embedded animation clips (kept optional)
       let mixer = null;
       const clipActions = {};
       if (gltf.animations && gltf.animations.length > 0) {
@@ -9594,29 +9828,16 @@
           else if (!clipActions.catch && /catch|dive|field/.test(cn)) clipActions.catch = act;
           else if (!clipActions.celebrate && /cheer|celebrate|win|jump/.test(cn)) clipActions.celebrate = act;
         });
-        if (!clipActions.idle) {
-          const fallbackClip = gltf.animations[0].clone();
-          fallbackClip.tracks = fallbackClip.tracks.filter((tr) => !/\.position$/.test(tr.name));
-          clipActions.idle = mixer.clipAction(fallbackClip);
-        }
-        clipActions.idle.play();
       }
 
-      // Attach a 3D willow cricket bat to the batter's right-hand bone (or wrapper fallback)
+      // Attach a 3D willow cricket bat in wrapper space so it stays locked to gripping hands & swings with batGripPivot
       let batPivot = null;
       if (role === 'batter' || role === 'nonstriker') {
         batPivot = new THREE.Group();
         const batMesh = createCustomGLBBat();
-        if (bones.rHand) {
-          batMesh.scale.setScalar(1 / Math.max(0.01, normScale));
-          batPivot.position.set(0, 0, 0);
-          batPivot.add(batMesh);
-          bones.rHand.add(batPivot);
-        } else {
-          batPivot.position.set(0.14, 0.90, 0.34);
-          batPivot.add(batMesh);
-          wrapper.add(batPivot);
-        }
+        batPivot.position.set(0.16, 0.94, 0.24);
+        batPivot.add(batMesh);
+        wrapper.add(batPivot);
       }
 
       rig.root.add(wrapper);
@@ -9636,14 +9857,17 @@
         meshes,
         restRot,
         restQuat,
+        neutralWrapperQ,
         restHipsPos,
         batPivot,
-        batOnBone: Boolean(bones.rHand),
+        batOnBone: false,
         mixer,
         clipActions,
-        activeAction: clipActions.idle || null,
+        activeAction: null,
       };
-      if (rig._lastKit && rig._lastKit.team && role !== 'umpire') {
+      if (role === 'umpire') {
+        tintCustomGLBKit(rig, { kitPrimary: '#f8fafc', kitTrousers: '#0f172a', kitSecondary: '#dc2626' });
+      } else if (rig._lastKit && rig._lastKit.team && !isTeamJerseyPack) {
         tintCustomGLBKit(rig, rig._lastKit.team);
       }
     });
@@ -9797,6 +10021,23 @@
         rig.root.updateMatrixWorld(true);
       }
 
+      // Sagittal-plane arm controller constraint during bowler run-up: lock Y/Z to 0 (pure front-to-back X swing)
+      const isBowlerRunup =
+        rig === bowlerRig &&
+        (Game.mode === 'DELIVERING' || Game.mode === 'DELIVERING_BOWL') &&
+        !Game.deliveryReleased &&
+        (Game.phaseTimer / Math.max(0.01, Game.runupDuration)) < 0.70;
+      if (isBowlerRunup && rig.joints && rig.joints.leftArm && rig.joints.rightArm) {
+        rig.joints.leftArm.shoulder.rotation.y = 0;
+        rig.joints.leftArm.shoulder.rotation.z = 0;
+        rig.joints.leftArm.elbow.rotation.y = 0;
+        rig.joints.leftArm.elbow.rotation.z = 0;
+        rig.joints.rightArm.shoulder.rotation.y = 0;
+        rig.joints.rightArm.shoulder.rotation.z = 0;
+        rig.joints.rightArm.elbow.rotation.y = 0;
+        rig.joints.rightArm.elbow.rotation.z = 0;
+      }
+
       // Built-in procedural rig anti-sinking guard & per-frame child mesh Y check
       if (!rig._customGLBNode) {
         if (rig.joints && rig.joints.pelvis && rig.dims && rig.joints.leftLeg && rig.joints.rightLeg) {
@@ -9825,27 +10066,37 @@
 
       if (!rig._customGLBData || !rig.joints) continue;
       const data = rig._customGLBData;
-      const { bones, meshes, restRot, restQuat, restHipsPos, batPivot, batOnBone } = data;
+      const { bones, meshes, neutralWrapperQ, restHipsPos, batPivot } = data;
       const j = rig.joints;
       const w = rig._customGLBNode;
 
-      // 1:1 Live Mirror: Custom .GLB model stays locked to rig.root (X=0, Z=0) and anchored to Y = 0.0
-      const rSh = j.rightArm && j.rightArm.shoulder;
-      const lSh = j.leftArm && j.leftArm.shoulder;
-      const rEl = j.rightArm && j.rightArm.elbow;
-      const lEl = j.leftArm && j.leftArm.elbow;
-      const rHp = j.rightLeg && j.rightLeg.hip;
-      const lHp = j.leftLeg && j.leftLeg.hip;
-      const rKn = j.rightLeg && j.rightLeg.knee;
-      const lKn = j.leftLeg && j.leftLeg.knee;
+      // Root-Space Quaternion Chain Retargeting (pre-allocated zero-GC quaternions/vectors)
+      const qWrapInv = updateCustomGLBAnimations._qWrapInv || (updateCustomGLBAnimations._qWrapInv = new THREE.Quaternion());
+      const qParentW = updateCustomGLBAnimations._qParentW || (updateCustomGLBAnimations._qParentW = new THREE.Quaternion());
+      const qParentL = updateCustomGLBAnimations._qParentL || (updateCustomGLBAnimations._qParentL = new THREE.Quaternion());
+      const qPelvis  = updateCustomGLBAnimations._qPelvis  || (updateCustomGLBAnimations._qPelvis  = new THREE.Quaternion());
+      const qSpine   = updateCustomGLBAnimations._qSpine   || (updateCustomGLBAnimations._qSpine   = new THREE.Quaternion());
+      const qChest   = updateCustomGLBAnimations._qChest   || (updateCustomGLBAnimations._qChest   = new THREE.Quaternion());
+      const qHead    = updateCustomGLBAnimations._qHead    || (updateCustomGLBAnimations._qHead    = new THREE.Quaternion());
+      const qRArm    = updateCustomGLBAnimations._qRArm    || (updateCustomGLBAnimations._qRArm    = new THREE.Quaternion());
+      const qRFore   = updateCustomGLBAnimations._qRFore   || (updateCustomGLBAnimations._qRFore   = new THREE.Quaternion());
+      const qLArm    = updateCustomGLBAnimations._qLArm    || (updateCustomGLBAnimations._qLArm    = new THREE.Quaternion());
+      const qLFore   = updateCustomGLBAnimations._qLFore   || (updateCustomGLBAnimations._qLFore   = new THREE.Quaternion());
+      const qRLeg    = updateCustomGLBAnimations._qRLeg    || (updateCustomGLBAnimations._qRLeg    = new THREE.Quaternion());
+      const qRShin   = updateCustomGLBAnimations._qRShin   || (updateCustomGLBAnimations._qRShin   = new THREE.Quaternion());
+      const qLLeg    = updateCustomGLBAnimations._qLLeg    || (updateCustomGLBAnimations._qLLeg    = new THREE.Quaternion());
+      const qLShin   = updateCustomGLBAnimations._qLShin   || (updateCustomGLBAnimations._qLShin   = new THREE.Quaternion());
+      const qLocal   = updateCustomGLBAnimations._qLocal   || (updateCustomGLBAnimations._qLocal   = new THREE.Quaternion());
+      const vHandA   = updateCustomGLBAnimations._vHandA   || (updateCustomGLBAnimations._vHandA   = new THREE.Vector3());
+      const vHandB   = updateCustomGLBAnimations._vHandB   || (updateCustomGLBAnimations._vHandB   = new THREE.Vector3());
 
       w.position.x = 0;
       w.position.z = 0;
       const expectedLift = j.pelvis ? Math.max(0, Math.min(0.32, j.pelvis.position.y - 0.88)) : 0;
       w.position.y = expectedLift;
-      if (j.pelvis) {
-        w.rotation.y = j.pelvis.rotation.y;
-      }
+      w.rotation.set(0, j.pelvis ? j.pelvis.rotation.y : 0, 0);
+      w.updateWorldMatrix(true, false);
+      w.getWorldQuaternion(qWrapInv).invert();
 
       // Lock hips root bone horizontal translation & prevent hips bone from dipping below rest plane
       if (bones.hips && restHipsPos) {
@@ -9856,64 +10107,143 @@
         }
       }
 
-      if (bones.spine && restRot.spine && j.spine) {
-        bones.spine.rotation.set(
-          restRot.spine.x + j.spine.rotation.x + (j.chest ? j.chest.rotation.x * 0.6 : 0),
-          restRot.spine.y + j.spine.rotation.y + (j.chest ? j.chest.rotation.y * 0.6 : 0),
-          restRot.spine.z + j.spine.rotation.z + (j.chest ? j.chest.rotation.z * 0.6 : 0)
-        );
-      } else if (j.spine) {
-        w.rotation.x = j.spine.rotation.x * 0.5;
+      // Compute exact target chain orientations in wrapper space from procedural cricket joints
+      if (j.pelvis) {
+        _eDelta.set(j.pelvis.rotation.x, 0, j.pelvis.rotation.z);
+        qPelvis.setFromEuler(_eDelta);
+      } else {
+        qPelvis.identity();
       }
-      if (bones.head && restRot.head && j.head) {
-        bones.head.rotation.set(
-          restRot.head.x + j.head.rotation.x,
-          restRot.head.y + j.head.rotation.y,
-          restRot.head.z + j.head.rotation.z
-        );
+      if (j.spine) {
+        _eDelta.set(j.spine.rotation.x, j.spine.rotation.y, j.spine.rotation.z);
+        qSpine.multiplyQuaternions(qPelvis, _qDelta.setFromEuler(_eDelta));
+      } else {
+        qSpine.copy(qPelvis);
       }
-
-      // Mirror arms using exact T-pose->down restQuat so arms hang naturally at sides when idle
-      if (bones.rArm && restQuat && restQuat.rArm && rSh) {
-        _eDelta.set(rSh.rotation.x, rSh.rotation.y, rSh.rotation.z);
-        _qDelta.setFromEuler(_eDelta);
-        bones.rArm.quaternion.copy(_qDelta).multiply(restQuat.rArm);
+      if (j.chest) {
+        _eDelta.set(j.chest.rotation.x, j.chest.rotation.y, j.chest.rotation.z);
+        qChest.multiplyQuaternions(qSpine, _qDelta.setFromEuler(_eDelta));
+      } else {
+        qChest.copy(qSpine);
       }
-      if (bones.lArm && restQuat && restQuat.lArm && lSh) {
-        _eDelta.set(lSh.rotation.x, lSh.rotation.y, lSh.rotation.z);
-        _qDelta.setFromEuler(_eDelta);
-        bones.lArm.quaternion.copy(_qDelta).multiply(restQuat.lArm);
-      }
-      if (bones.rFore && restRot.rFore && rEl) bones.rFore.rotation.x = restRot.rFore.x + rEl.rotation.x;
-      if (bones.lFore && restRot.lFore && lEl) bones.lFore.rotation.x = restRot.lFore.x + lEl.rotation.x;
-      if (bones.rLeg && restRot.rLeg && rHp) {
-        bones.rLeg.rotation.set(restRot.rLeg.x + rHp.rotation.x, restRot.rLeg.y, restRot.rLeg.z + rHp.rotation.z);
-      }
-      if (bones.lLeg && restRot.lLeg && lHp) {
-        bones.lLeg.rotation.set(restRot.lLeg.x + lHp.rotation.x, restRot.lLeg.y, restRot.lLeg.z + lHp.rotation.z);
-      }
-      if (bones.rShin && restRot.rShin && rKn) bones.rShin.rotation.x = restRot.rShin.x + rKn.rotation.x;
-      if (bones.lShin && restRot.lShin && lKn) bones.lShin.rotation.x = restRot.lShin.x + lKn.rotation.x;
-
-      // Mirror bat position & swing 1:1 from built-in batGripPivot when using wrapper fallback
-      if (batPivot && !batOnBone && j.batGripPivot) {
-        batPivot.rotation.set(
-          0.20 + j.batGripPivot.rotation.x,
-          j.batGripPivot.rotation.y,
-          -0.10 + j.batGripPivot.rotation.z
-        );
+      if (j.head) {
+        _eDelta.set(j.head.rotation.x, j.head.rotation.y, j.head.rotation.z);
+        qHead.multiplyQuaternions(qChest, _qDelta.setFromEuler(_eDelta));
+      } else {
+        qHead.copy(qChest);
       }
 
-      // Per-frame lowest-mesh-point ground-plane check: log error if below Y=0.0 and anchor feet to Y = 0.0
+      const rSh = j.rightArm && j.rightArm.shoulder;
+      const lSh = j.leftArm && j.leftArm.shoulder;
+      const rEl = j.rightArm && j.rightArm.elbow;
+      const lEl = j.leftArm && j.leftArm.elbow;
+      const rHp = j.rightLeg && j.rightLeg.hip;
+      const lHp = j.leftLeg && j.leftLeg.hip;
+      const rKn = j.rightLeg && j.rightLeg.knee;
+      const lKn = j.leftLeg && j.leftLeg.knee;
+
+      if (rSh) {
+        _eDelta.set(rSh.rotation.x, isBowlerRunup ? 0 : rSh.rotation.y, isBowlerRunup ? 0 : rSh.rotation.z);
+        qRArm.multiplyQuaternions(qChest, _qDelta.setFromEuler(_eDelta));
+      } else qRArm.copy(qChest);
+      if (rEl) {
+        _eDelta.set(rEl.rotation.x, isBowlerRunup ? 0 : rEl.rotation.y, isBowlerRunup ? 0 : rEl.rotation.z);
+        qRFore.multiplyQuaternions(qRArm, _qDelta.setFromEuler(_eDelta));
+      } else qRFore.copy(qRArm);
+
+      if (lSh) {
+        _eDelta.set(lSh.rotation.x, isBowlerRunup ? 0 : lSh.rotation.y, isBowlerRunup ? 0 : lSh.rotation.z);
+        qLArm.multiplyQuaternions(qChest, _qDelta.setFromEuler(_eDelta));
+      } else qLArm.copy(qChest);
+      if (lEl) {
+        _eDelta.set(lEl.rotation.x, isBowlerRunup ? 0 : lEl.rotation.y, isBowlerRunup ? 0 : lEl.rotation.z);
+        qLFore.multiplyQuaternions(qLArm, _qDelta.setFromEuler(_eDelta));
+      } else qLFore.copy(qLArm);
+
+      if (rHp) {
+        _eDelta.set(rHp.rotation.x, rHp.rotation.y, rHp.rotation.z);
+        qRLeg.multiplyQuaternions(qPelvis, _qDelta.setFromEuler(_eDelta));
+      } else qRLeg.copy(qPelvis);
+      if (rKn) {
+        _eDelta.set(rKn.rotation.x, rKn.rotation.y, rKn.rotation.z);
+        qRShin.multiplyQuaternions(qRLeg, _qDelta.setFromEuler(_eDelta));
+      } else qRShin.copy(qRLeg);
+
+      if (lHp) {
+        _eDelta.set(lHp.rotation.x, lHp.rotation.y, lHp.rotation.z);
+        qLLeg.multiplyQuaternions(qPelvis, _qDelta.setFromEuler(_eDelta));
+      } else qLLeg.copy(qPelvis);
+      if (lKn) {
+        _eDelta.set(lKn.rotation.x, lKn.rotation.y, lKn.rotation.z);
+        qLShin.multiplyQuaternions(qLLeg, _qDelta.setFromEuler(_eDelta));
+      } else qLShin.copy(qLLeg);
+
+      // Apply target orientation in bone.parent's local space top-down so Blender/Mixamo axis roll never twists
+      const applyBoneChain = (bone, procQ, neutralKey) => {
+        const nq = neutralWrapperQ && neutralWrapperQ[neutralKey];
+        if (!bone || !bone.parent || !nq) return;
+        bone.parent.updateWorldMatrix(true, false);
+        bone.parent.getWorldQuaternion(qParentW);
+        qParentL.multiplyQuaternions(qWrapInv, qParentW);
+        qLocal.multiplyQuaternions(procQ, nq);
+        bone.quaternion.multiplyQuaternions(qParentL.invert(), qLocal);
+        bone.updateWorldMatrix(false, false);
+      };
+
+      applyBoneChain(bones.hips, qPelvis, 'hips');
+      applyBoneChain(bones.spine, bones.chest ? qSpine : qChest, 'spine');
+      applyBoneChain(bones.chest, qChest, 'chest');
+      applyBoneChain(bones.head, qHead, 'head');
+      applyBoneChain(bones.posXArm, qRArm, 'posXArm');
+      applyBoneChain(bones.posXFore, qRFore, 'posXFore');
+      applyBoneChain(bones.negXArm, qLArm, 'negXArm');
+      applyBoneChain(bones.negXFore, qLFore, 'negXFore');
+      applyBoneChain(bones.posXLeg, qRLeg, 'posXLeg');
+      applyBoneChain(bones.posXShin, qRShin, 'posXShin');
+      applyBoneChain(bones.negXLeg, qLLeg, 'negXLeg');
+      applyBoneChain(bones.negXShin, qLShin, 'negXShin');
+
+      // Keep 3D cricket bat locked into the batter's gripping hands and swinging 1:1 with shot selection
+      if (batPivot && j.batGripPivot) {
+        if (bones.posXHand && bones.negXHand) {
+          bones.posXHand.updateWorldMatrix(true, false);
+          bones.negXHand.updateWorldMatrix(true, false);
+          bones.posXHand.getWorldPosition(vHandA);
+          bones.negXHand.getWorldPosition(vHandB);
+          w.worldToLocal(vHandA);
+          w.worldToLocal(vHandB);
+          batPivot.position.copy(vHandA).lerp(vHandB, 0.42);
+        } else if (bones.posXHand) {
+          bones.posXHand.updateWorldMatrix(true, false);
+          bones.posXHand.getWorldPosition(vHandA);
+          w.worldToLocal(vHandA);
+          batPivot.position.copy(vHandA);
+        } else {
+          batPivot.position.set(
+            j.batGripPivot.position.x,
+            0.88 + j.batGripPivot.position.y,
+            j.batGripPivot.position.z
+          );
+        }
+        _eDelta.set(j.batGripPivot.rotation.x, j.batGripPivot.rotation.y, j.batGripPivot.rotation.z);
+        batPivot.quaternion.multiplyQuaternions(qPelvis, _qDelta.setFromEuler(_eDelta));
+      }
+
+      // Per-frame lowest-mesh-point ground-plane anchoring: keep feet flush at Y = 0.0 even during forward lean
+      const rootScaleY = Math.max(0.01, rig.root.scale ? rig.root.scale.y : 1);
       let minMeshY = computeLowestMeshWorldY(w, meshes);
       if (Number.isFinite(minMeshY)) {
-        if (minMeshY < GROUND_EPSILON) {
-          logGroundViolation(rig, `${label} skeleton mesh`, minMeshY, elapsed);
-          w.position.y += -minMeshY;
-          minMeshY = 0;
+        if (minMeshY < 0) {
+          w.position.y += -minMeshY / rootScaleY;
+          rig.root.updateMatrixWorld(true);
+          minMeshY = computeLowestMeshWorldY(w, meshes);
         } else if (expectedLift <= 0.005 && rig.root.position.y <= 0.005 && minMeshY > 0.005) {
-          w.position.y = Math.max(0, w.position.y - minMeshY);
-          minMeshY = 0;
+          w.position.y = Math.max(0, w.position.y - minMeshY / rootScaleY);
+          rig.root.updateMatrixWorld(true);
+          minMeshY = computeLowestMeshWorldY(w, meshes);
+        }
+        if (Number.isFinite(minMeshY) && minMeshY < GROUND_EPSILON) {
+          logGroundViolation(rig, `${label} skeleton mesh`, minMeshY, elapsed);
         }
       }
       updateGroundDebugMarker(rig, minMeshY);
@@ -10150,10 +10480,16 @@
       j.leftArm.elbow.rotation.set(-0.95, 0, 0);
       j.rightArm.shoulder.rotation.set(-0.68 - c * 0.35, -0.28, 0.12);
       j.rightArm.elbow.rotation.set(-0.95, 0, 0);
+    } else if (c < 0.12) {
+      // Natural standing ready pose (e.g. bowler at start of run-up): relaxed arms close to sides
+      j.leftArm.shoulder.rotation.set(-0.14, 0.08, 0.06);
+      j.leftArm.elbow.rotation.set(-0.42, 0, 0);
+      j.rightArm.shoulder.rotation.set(-0.18, -0.08, -0.06);
+      j.rightArm.elbow.rotation.set(-0.55, 0, 0);
     } else {
-      j.leftArm.shoulder.rotation.set(-0.38 - c * 0.45, 0.16, -0.16);
+      j.leftArm.shoulder.rotation.set(-0.38 - c * 0.45, 0.16, 0.04);
       j.leftArm.elbow.rotation.set(-0.85, 0, 0);
-      j.rightArm.shoulder.rotation.set(-0.38 - c * 0.45, -0.16, 0.16);
+      j.rightArm.shoulder.rotation.set(-0.38 - c * 0.45, -0.16, -0.04);
       j.rightArm.elbow.rotation.set(-0.85, 0, 0);
     }
     setRigExpression(rig, 'neutral');
@@ -10209,23 +10545,27 @@
   function poseRunner(rig, runPhase, speedNorm = 1) {
     if (rig.isGLTF) return;
     const j = rig.joints;
-    const s = Math.sin(runPhase) * 0.88 * speedNorm;
+    const s = Math.sin(runPhase) * 0.92 * speedNorm;
+    const armPump = Math.sin(runPhase) * 0.72 * speedNorm;
     j.pelvis.position.x = 0;
     j.pelvis.position.z = 0;
-    j.pelvis.rotation.set(0, Math.sin(runPhase) * 0.06 * speedNorm, 0);
-    j.spine.rotation.set(0.14 * speedNorm, Math.sin(runPhase) * 0.07 * speedNorm, 0);
-    j.chest.rotation.set(0.10 * speedNorm, Math.sin(runPhase) * 0.09 * speedNorm, 0);
-    j.head.rotation.set(-0.15, 0, 0);
-    j.leftLeg.hip.rotation.set(s, 0, -0.05);
-    j.leftLeg.knee.rotation.set(Math.max(0, -s * 1.15) + 0.18, 0, 0);
-    j.rightLeg.hip.rotation.set(-s, 0, 0.05);
-    j.rightLeg.knee.rotation.set(Math.max(0, s * 1.15) + 0.18, 0, 0);
-    j.leftArm.shoulder.rotation.set(-s * 0.85, 0, -0.12);
-    j.leftArm.elbow.rotation.set(-1.15, 0, 0);
-    j.rightArm.shoulder.rotation.set(s * 0.85, 0, 0.12);
-    j.rightArm.elbow.rotation.set(-1.15, 0, 0);
+    // Solid locked athletic hips (zero side-to-side hip sway)
+    j.pelvis.rotation.set(0.06 * speedNorm, 0, 0);
+    j.spine.rotation.set(0.18 * speedNorm, -Math.sin(runPhase) * 0.04 * speedNorm, 0);
+    j.chest.rotation.set(0.12 * speedNorm, -Math.sin(runPhase) * 0.06 * speedNorm, 0);
+    j.head.rotation.set(-0.24 * speedNorm, 0, 0);
+    // Powerful high-knee sprinter stride
+    j.leftLeg.hip.rotation.set(s - 0.10, 0, 0.02);
+    j.leftLeg.knee.rotation.set(Math.max(0.12, -s * 1.25) + 0.14, 0, 0);
+    j.rightLeg.hip.rotation.set(-s - 0.10, 0, -0.02);
+    j.rightLeg.knee.rotation.set(Math.max(0.12, s * 1.25) + 0.14, 0, 0);
+    // Straight front-to-back 90-degree sprinter arm drive at sides (no flaring, no chest-tucking)
+    j.leftArm.shoulder.rotation.set(-armPump, 0, 0);
+    j.leftArm.elbow.rotation.set(-1.52, 0, 0);
+    j.rightArm.shoulder.rotation.set(armPump, 0, 0);
+    j.rightArm.elbow.rotation.set(-1.52, 0, 0);
     setRigExpression(rig, 'determined');
-    groundRigFeet(rig, Math.abs(Math.cos(runPhase)) * 0.055 * speedNorm);
+    groundRigFeet(rig, Math.abs(Math.cos(runPhase)) * 0.065 * speedNorm);
   }
 
   function poseBowlerDelivery(rig, deliveryProgress) {
@@ -10237,18 +10577,26 @@
     if (rig.isGLTF) return;
     const j = rig.joints;
     if (deliveryProgress < 0.56) {
-      // Tight athletic fast-bowler sprint: arms tucked close to chest (no waving/flailing)
-      const speedNorm = 0.75 + (deliveryProgress / 0.56) * 0.40;
-      poseRunner(rig, deliveryProgress * 28, speedNorm);
-      j.spine.rotation.x += 0.12;
-      j.rightArm.shoulder.rotation.x *= 0.45;
-      j.rightArm.shoulder.rotation.z = 0.04;
-      j.rightArm.elbow.rotation.x = -1.45;
-      j.leftArm.shoulder.rotation.x *= 0.55;
-      j.leftArm.shoulder.rotation.z = -0.04;
-      j.leftArm.elbow.rotation.x = -1.45;
+      // Powerful fast-bowler sprint run-up: strong forward lean, locked hips, straight front-to-back arm drive
+      const speedNorm = 0.80 + (deliveryProgress / 0.56) * 0.38;
+      poseRunner(rig, deliveryProgress * 26, speedNorm);
+      j.spine.rotation.x += 0.08;
+      j.head.rotation.x = -0.28;
+      // Strictly constrain arm swing to the sagittal plane (pure front-to-back X-axis, zero lateral Y/Z swing)
+      j.rightArm.shoulder.rotation.set(
+        THREE.MathUtils.clamp(j.rightArm.shoulder.rotation.x * 0.72, -0.58, 0.48),
+        0,
+        0
+      );
+      j.rightArm.elbow.rotation.set(-1.55, 0, 0);
+      j.leftArm.shoulder.rotation.set(
+        THREE.MathUtils.clamp(j.leftArm.shoulder.rotation.x * 0.75, -0.60, 0.50),
+        0,
+        0
+      );
+      j.leftArm.elbow.rotation.set(-1.55, 0, 0);
     } else if (deliveryProgress < 0.72) {
-      // Gather & bound leap: turn side-on, drive left arm skyward, cock right bowling arm back
+      // Gather & bound leap: turn side-on, drive left arm up, cock right bowling arm back close to body
       const u = easeInOutCubic((deliveryProgress - 0.56) / 0.16);
       const leap = Math.sin(u * Math.PI);
       j.pelvis.position.set(0, 0, 0);
@@ -10256,32 +10604,37 @@
       j.spine.rotation.set(0.12 - 0.06 * u, -0.45 * u, -0.10 * u);
       j.chest.rotation.set(0.08, -0.55 * u, -0.14 * u);
       j.head.rotation.set(-0.10, 0.55 * u, 0);
-      // Bowling arm drops back behind hip; non-bowling arm points high toward batter
-      j.rightArm.shoulder.rotation.set(0.85 * u, 0, 0.24 * u);
-      j.rightArm.elbow.rotation.set(-0.22, 0, 0);
-      j.leftArm.shoulder.rotation.set(-2.35 * u, 0, -0.22);
-      j.leftArm.elbow.rotation.set(-0.25, 0, 0);
-      j.leftLeg.hip.rotation.set(-0.85 * u, 0, -0.08);
+      // Keep both arms close to torso plane (no wide sideways flaring)
+      j.rightArm.shoulder.rotation.set(0.85 * u, 0, -0.06);
+      j.rightArm.elbow.rotation.set(-0.28, 0, 0);
+      j.leftArm.shoulder.rotation.set(-2.25 * u, 0, 0.06);
+      j.leftArm.elbow.rotation.set(-0.30, 0, 0);
+      j.leftLeg.hip.rotation.set(-0.85 * u, 0, -0.04);
       j.leftLeg.knee.rotation.set(1.15 * u, 0, 0);
-      j.rightLeg.hip.rotation.set(0.55 * u, 0, 0.08);
+      j.rightLeg.hip.rotation.set(0.55 * u, 0, 0.04);
       j.rightLeg.knee.rotation.set(0.45 * u, 0, 0);
       setRigExpression(rig, 'determined');
       groundRigFeet(rig, leap * 0.28);
     } else if (deliveryProgress < 0.85) {
-      // Slingy high-arm whip & release (reaches exact 12-o'clock overhead release at deliveryProgress = 0.80, u = 0.615)
-      const u = easeInOutCubic((deliveryProgress - 0.72) / 0.13);
+      // High-arm fast-bowler whip & release (reaches exact 12-o'clock +PI overhead release at deliveryProgress = 0.80, i.e., u ~ 0.674)
+      const relNorm = (deliveryProgress - 0.72) / 0.13;
+      const u = easeInOutCubic(relNorm);
       const arc = Math.sin(u * Math.PI);
       j.pelvis.position.set(0, 0, 0);
       j.pelvis.rotation.set(0, -0.52 + u * 0.92, 0);
       j.spine.rotation.set(0.06 + u * 0.34, -0.45 + u * 0.85, -0.10 + u * 0.26);
       j.chest.rotation.set(0.08 + u * 0.32, -0.55 + u * 1.15, -0.14 + u * 0.32);
       j.head.rotation.set(-0.18, 0.55 * (1 - u), 0);
-      // Full explosive fast-bowler arm windmill with slight Shoaib Akhtar sling angle (z = 0.28)
-      j.rightArm.shoulder.rotation.set(-Math.PI * 1.18 + u * Math.PI * 1.92, 0, 0.28);
-      j.rightArm.elbow.rotation.set(-0.06, 0, 0);
+      // Continuous backward-up -> 12-o'clock overhead (+PI at release!) -> forward-down whip
+      const uRel = 0.674;
+      const armRotX = u <= uRel
+        ? THREE.MathUtils.lerp(0.85, Math.PI, u / uRel)
+        : THREE.MathUtils.lerp(Math.PI, Math.PI * 1.82, (u - uRel) / (1 - uRel));
+      j.rightArm.shoulder.rotation.set(armRotX, 0, 0.05);
+      j.rightArm.elbow.rotation.set(-0.08, 0, 0);
       // Left front arm pulls sharply down into ribs for torque
-      j.leftArm.shoulder.rotation.set(-2.35 + u * 3.15, 0, -0.22);
-      j.leftArm.elbow.rotation.set(-0.25 - u * 0.95, 0, 0);
+      j.leftArm.shoulder.rotation.set(-2.25 + u * 3.05, 0, 0.08);
+      j.leftArm.elbow.rotation.set(-0.30 - u * 0.95, 0, 0);
       // Front leg braces hard at crease
       j.leftLeg.hip.rotation.set(-0.78 + u * 0.18, 0, -0.06);
       j.leftLeg.knee.rotation.set(0.22, 0, 0);
@@ -10293,7 +10646,7 @@
       // Explosive follow-through across left hip & deceleration stride
       const u = (deliveryProgress - 0.85) / 0.15;
       poseRunner(rig, 20 + u * 5.0, 1.0 - u * 0.65);
-      j.rightArm.shoulder.rotation.x += (1 - u) * 0.95;
+      j.rightArm.shoulder.rotation.x -= (1 - u) * 0.48;
       j.spine.rotation.x += (1 - u) * 0.25;
     }
   }
@@ -11265,6 +11618,18 @@
         const fp = fldPool[idx % fldPool.length] || this.bowlingTeam.squad[idx % this.bowlingTeam.squad.length];
         f.rig.updateKit(bowlKit, fp.num, fp.name);
       });
+      if (_lastLoadedCustomGLTF) {
+        const packChars = _lastLoadedCustomGLTF.scene ? extractPackSubCharacters(_lastLoadedCustomGLTF.scene) : [];
+        if (packChars.length >= 2 && packChars.some((ch) => /india|pakistan|australia|england/i.test(ch.name || ''))) {
+          applyCustomGLBToLivePlayers(_lastLoadedCustomGLTF, 'all');
+        } else {
+          [batterRig, nonStrikerRig, bowlerRig, keeperRig, ...fielders.map(f => f.rig)].forEach((r) => {
+            if (r && r._customGLBNode && r._lastKit && r._lastKit.team) {
+              tintCustomGLBKit(r, r._lastKit.team);
+            }
+          });
+        }
+      }
     },
 
     resetFielders() {
@@ -16039,8 +16404,46 @@
   applyCharacterStyle(Storage.data.settings.characterStyle || 'realistic');
   WeatherSystem.applyInstant(WeatherSystem.getTargetKey(0));
   Commentary.init();
-  await Promise.all([loadRemoteConfig(), tryLoadCharacterGLTF(), ModelDB.restoreAll()]);
+  // One-time restore: clear earlier custom GLB caches so the original built-in 3D cricket players load cleanly
+  try {
+    if (!localStorage.getItem('sixerpro_builtin_players_v1')) {
+      for (const r of ['all', 'batter', 'bowler', 'keeper', 'fielder', 'umpire']) {
+        await ModelDB.remove(r);
+      }
+      if (AdminStore.data && AdminStore.data.gameSettings) {
+        AdminStore.data.gameSettings.customCharacterUrl = '';
+        AdminStore.save();
+      }
+      try {
+        localStorage.removeItem(STORAGE_KEYS.REMOTE_CFG);
+      } catch (_) {}
+      CONFIG.CHARACTER_MODEL_URL = '';
+      localStorage.setItem('sixerpro_builtin_players_v1', '1');
+    }
+  } catch (_) {}
+  await loadRemoteConfig();
+  await Promise.all([tryLoadCharacterGLTF(), ModelDB.restoreAll()]);
   UI.init();
+  // Assign default team kits (India Blue vs Australia Gold) immediately so even Menu preview players wear proper kits
+  const defaultBatTeam = TEAMS.find((t) => t.id === (Storage.data.selectedTeam || 'IND')) || TEAMS[0];
+  const defaultBowlTeam = TEAMS.find((t) => t.id !== defaultBatTeam.id && t.id === 'AUS') || TEAMS.find((t) => t.id !== defaultBatTeam.id) || TEAMS[1];
+  [batterRig, nonStrikerRig].forEach((r, idx) => {
+    if (r && !r._lastKit && typeof r.updateKit === 'function') {
+      const p = defaultBatTeam.squad[idx] || defaultBatTeam.squad[0];
+      r.updateKit(defaultBatTeam, p.num, p.name);
+    }
+  });
+  [bowlerRig, keeperRig, ...fielders.map(f => f.rig)].forEach((r, idx) => {
+    if (r && !r._lastKit && typeof r.updateKit === 'function') {
+      const p = defaultBowlTeam.squad[idx % defaultBowlTeam.squad.length];
+      r.updateKit(defaultBowlTeam, p.num, p.name);
+    }
+  });
+  [batterRig, nonStrikerRig, bowlerRig, keeperRig, ...fielders.map(f => f.rig)].forEach((r) => {
+    if (r && r._customGLBNode && r._lastKit && r._lastKit.team) {
+      tintCustomGLBKit(r, r._lastKit.team);
+    }
+  });
   onResize();
   if (!isSoftwareGl) renderer.compile(scene, camera);
   if (AdminStore.openAdminOnBoot) AdminUI.requestOpen();
@@ -16442,7 +16845,13 @@
               if (Array.isArray(cfg.ads)) window.AdminStore.data.ads = cfg.ads;
               if (cfg.slots) window.AdminStore.data.slots = { ...window.AdminStore.data.slots, ...cfg.slots };
               if (cfg.liveScore) window.AdminStore.data.liveScore = { ...window.AdminStore.data.liveScore, ...cfg.liveScore };
-              if (cfg.gameSettings) window.AdminStore.data.gameSettings = { ...window.AdminStore.data.gameSettings, ...cfg.gameSettings };
+              if (cfg.gameSettings) {
+                const nextGs = { ...cfg.gameSettings };
+                if (typeof isBrokenStaticPackUrl === 'function' && isBrokenStaticPackUrl(nextGs.customCharacterUrl)) {
+                  nextGs.customCharacterUrl = '';
+                }
+                window.AdminStore.data.gameSettings = { ...window.AdminStore.data.gameSettings, ...nextGs };
+              }
               window.AdminStore.save();
               if (typeof window.refreshStadiumAdBoards === 'function') {
                 window.refreshStadiumAdBoards(window.AdminStore.data.ads);
