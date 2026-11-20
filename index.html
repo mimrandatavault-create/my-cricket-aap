@@ -3272,6 +3272,7 @@
               <button id="btn-admin-char-preview" class="btn btn-sm">Preview</button>
               <button id="btn-admin-char-reset-pos" class="btn btn-sm">Reset Position</button>
               <button id="btn-admin-char-reset" class="btn btn-sm">Reset Role</button>
+              <button id="btn-admin-ground-debug" class="btn btn-sm">Ground Debug: OFF</button>
             </div>
           </div>
 
@@ -8925,7 +8926,7 @@
     const THIGH_LEN = 0.39;
     const SHIN_LEN = 0.38;
     const HIP_OFFSET_Y = 0.04;
-    const FOOT_BOTTOM = 0.058;
+    const FOOT_BOTTOM = 0.062;
 
     // 1. Pelvis (ground-compensated root pivot)
     const pelvis = new THREE.Group();
@@ -9421,16 +9422,26 @@
   function alignCustomGLBToGround(clone, targetHeight) {
     const modelPivot = new THREE.Group();
     modelPivot.add(clone);
-    modelPivot.updateMatrixWorld(true);
 
+    const refreshSkeletons = (root) => {
+      root.updateMatrixWorld(true);
+      root.traverse((obj) => {
+        if (obj.isSkinnedMesh && obj.skeleton) {
+          obj.skeleton.update();
+          if (typeof obj.computeBoundingBox === 'function') obj.computeBoundingBox();
+        }
+      });
+    };
+
+    refreshSkeletons(modelPivot);
     const rawBox = new THREE.Box3().setFromObject(modelPivot);
     const rawSize = new THREE.Vector3();
     rawBox.getSize(rawSize);
     const rawH = Math.max(0.01, rawSize.y);
     const normScale = targetHeight / rawH;
     modelPivot.scale.setScalar(normScale);
-    modelPivot.updateMatrixWorld(true);
 
+    refreshSkeletons(modelPivot);
     const scaledBox = new THREE.Box3().setFromObject(modelPivot);
     const scaledCenter = new THREE.Vector3();
     scaledBox.getCenter(scaledCenter);
@@ -9439,7 +9450,7 @@
       -scaledBox.min.y,
       -scaledCenter.z
     );
-    modelPivot.updateMatrixWorld(true);
+    refreshSkeletons(modelPivot);
     return { modelPivot, normScale };
   }
 
@@ -9486,11 +9497,14 @@
 
       const clone = SkeletonUtils.clone(gltf.scene);
       const bones = {};
+      const meshes = [];
       clone.traverse((obj) => {
         if (obj.isMesh || obj.isSkinnedMesh) {
           obj.castShadow = !isSoftwareGl;
           obj.receiveShadow = true;
           obj.frustumCulled = false;
+          if (obj.geometry && !obj.geometry.boundingBox) obj.geometry.computeBoundingBox();
+          meshes.push(obj);
         }
         if (obj.isBone) {
           const n = (obj.name || '').toLowerCase().replace(/[\s\-]+/g, '_');
@@ -9524,6 +9538,7 @@
       wrapper.updateMatrixWorld(true);
       const restRot = {};
       const restQuat = {};
+      const restHipsPos = bones.hips ? bones.hips.position.clone() : null;
       const alignArmDown = (upperBone, lowerBone) => {
         if (!upperBone) return null;
         const baseQ = upperBone.quaternion.clone();
@@ -9605,14 +9620,23 @@
       }
 
       rig.root.add(wrapper);
+      // Final post-pose ground anchor: ensure lowest mesh point sits at exact Y = 0.0
+      const postPoseMinY = computeLowestMeshWorldY(wrapper, meshes);
+      if (Number.isFinite(postPoseMinY) && Math.abs(postPoseMinY - rig.root.position.y) > 0.001) {
+        modelPivot.position.y -= (postPoseMinY - rig.root.position.y);
+        wrapper.updateMatrixWorld(true);
+      }
+
       rig._customGLBNode = wrapper;
       rig._customGLBData = {
         role,
         modelPivot,
         targetHeight,
         bones,
+        meshes,
         restRot,
         restQuat,
+        restHipsPos,
         batPivot,
         batOnBone: Boolean(bones.rHand),
         mixer,
@@ -9657,19 +9681,155 @@
 
   const _qDelta = new THREE.Quaternion();
   const _eDelta = new THREE.Euler();
+  const _meshWorldBox = new THREE.Box3();
+
+  // Visual Ground-Plane Debug Mode: renders a 0.1m red sphere at the lowest mesh Y-point of every active character
+  let groundDebugEnabled = /[?&]debugGround=1\b/i.test(window.location.search);
+  const _groundDebugGeo = new THREE.SphereGeometry(0.1, 12, 10);
+  const _groundDebugMat = new THREE.MeshBasicMaterial({
+    color: 0xff2222,
+    depthTest: false,
+    transparent: true,
+    opacity: 0.92,
+  });
+
+  function updateGroundDebugMarker(rig, minY) {
+    if (!rig || !rig.root) return;
+    if (!groundDebugEnabled) {
+      if (rig._groundDebugMarker) rig._groundDebugMarker.visible = false;
+      return;
+    }
+    if (!rig._groundDebugMarker) {
+      const marker = new THREE.Mesh(_groundDebugGeo, _groundDebugMat);
+      marker.name = 'ground_debug_sphere';
+      marker.renderOrder = 999;
+      marker.frustumCulled = false;
+      scene.add(marker);
+      rig._groundDebugMarker = marker;
+    }
+    const marker = rig._groundDebugMarker;
+    marker.visible = Boolean(rig.root.visible) && Number.isFinite(minY);
+    if (marker.visible) {
+      marker.position.set(rig.root.position.x, minY, rig.root.position.z);
+    }
+  }
+
+  function getCachedRigMeshes(rig) {
+    if (!rig || !rig.root) return [];
+    if (!rig._debugMeshes) {
+      const list = [];
+      rig.root.traverse((obj) => {
+        if ((obj.isMesh || obj.isSkinnedMesh) && obj.name !== 'ground_debug_sphere') {
+          if (obj.geometry && !obj.geometry.boundingBox) obj.geometry.computeBoundingBox();
+          list.push(obj);
+        }
+      });
+      rig._debugMeshes = list;
+    }
+    return rig._debugMeshes;
+  }
+
+  window.toggleGroundDebug = (forceState) => {
+    groundDebugEnabled = typeof forceState === 'boolean' ? forceState : !groundDebugEnabled;
+    const btn = document.getElementById('btn-admin-ground-debug');
+    if (btn) btn.textContent = `Ground Debug: ${groundDebugEnabled ? 'ON' : 'OFF'}`;
+    return groundDebugEnabled;
+  };
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'g' && e.key !== 'G') return;
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    window.toggleGroundDebug();
+  });
+
+  // Zero-allocation helper to compute the lowest world-space Y point across all meshes of a rig wrapper
+  function computeLowestMeshWorldY(wrapper, meshes) {
+    if (!wrapper || !meshes || meshes.length === 0) return NaN;
+    wrapper.updateMatrixWorld(true);
+    let minY = Infinity;
+    for (let i = 0; i < meshes.length; i++) {
+      const m = meshes[i];
+      if (!m || !m.visible || !m.geometry) continue;
+      if (m.isSkinnedMesh && m.skeleton) {
+        m.skeleton.update();
+      }
+      const bb = m.boundingBox || m.geometry.boundingBox;
+      if (!bb || bb.isEmpty()) continue;
+      _meshWorldBox.copy(bb).applyMatrix4(m.matrixWorld);
+      if (_meshWorldBox.min.y < minY) minY = _meshWorldBox.min.y;
+    }
+    return minY;
+  }
+
+  const _rigWorldPosTmp = new THREE.Vector3();
+  const GROUND_EPSILON = -0.001;
+
+  function logGroundViolation(rig, label, yVal, elapsed) {
+    const now = typeof elapsed === 'number' ? elapsed : performance.now() * 0.001;
+    if (rig._lastGroundErrTime !== undefined && (now - rig._lastGroundErrTime) < 1.0) return;
+    rig._lastGroundErrTime = now;
+    console.error(`[GroundPlaneCheck] ${label} fell below Y=0.0 (worldY=${yVal.toFixed(4)}). Re-anchoring to Y=0.0.`);
+  }
 
   // Mirror live procedural cricket animations 1:1 onto custom .GLB/.GLTF players
+  // and enforce Y = 0.0 ground-plane anchoring (zero sinking) across ALL player rigs in the render loop
   function updateCustomGLBAnimations(dt, elapsed) {
-    const playerRigs = [batterRig, nonStrikerRig, bowlerRig, keeperRig, mainUmpire, squareUmpire, ...fielders.map(f => f.rig)];
+    const playerRigs = [
+      { rig: batterRig, label: 'BatterRig' },
+      { rig: nonStrikerRig, label: 'NonStrikerRig' },
+      { rig: bowlerRig, label: 'BowlerRig' },
+      { rig: keeperRig, label: 'KeeperRig' },
+      { rig: mainUmpire, label: 'MainUmpire' },
+      { rig: squareUmpire, label: 'SquareUmpire' },
+      ...fielders.map((f, idx) => ({ rig: f.rig, label: `FielderRig[${idx}]` })),
+    ];
     for (let i = 0; i < playerRigs.length; i++) {
-      const rig = playerRigs[i];
-      if (!rig || !rig._customGLBNode || !rig._customGLBData || !rig.joints) continue;
+      const { rig, label } = playerRigs[i];
+      if (!rig || !rig.root) continue;
+
+      // Global world-space Y check: verify rig root has not fallen below ground plane Y = 0.0
+      rig.root.updateMatrixWorld(true);
+      rig.root.getWorldPosition(_rigWorldPosTmp);
+      if (_rigWorldPosTmp.y < GROUND_EPSILON) {
+        logGroundViolation(rig, `${label} root`, _rigWorldPosTmp.y, elapsed);
+        rig.root.position.y += -_rigWorldPosTmp.y;
+        rig.root.updateMatrixWorld(true);
+      }
+
+      // Built-in procedural rig anti-sinking guard & per-frame child mesh Y check
+      if (!rig._customGLBNode) {
+        if (rig.joints && rig.joints.pelvis && rig.dims && rig.joints.leftLeg && rig.joints.rightLeg) {
+          const j = rig.joints;
+          const d = rig.dims;
+          const lDrop = computeLegDropY(j.leftLeg.hip.rotation.x, j.leftLeg.hip.rotation.z, j.leftLeg.knee.rotation.x, d);
+          const rDrop = computeLegDropY(j.rightLeg.hip.rotation.x, j.rightLeg.hip.rotation.z, j.rightLeg.knee.rotation.x, d);
+          const minGroundedPelvisY = Math.max(lDrop, rDrop);
+          if (j.pelvis.position.y < minGroundedPelvisY - 0.005) {
+            j.pelvis.position.y = minGroundedPelvisY;
+          }
+        }
+        let builtInMinY = computeLowestMeshWorldY(rig.root, getCachedRigMeshes(rig));
+        if (Number.isFinite(builtInMinY) && builtInMinY < GROUND_EPSILON) {
+          logGroundViolation(rig, `${label} child mesh`, builtInMinY, elapsed);
+          rig.root.position.y += -builtInMinY;
+          builtInMinY = 0;
+        }
+        if (groundDebugEnabled) {
+          updateGroundDebugMarker(rig, builtInMinY);
+        } else if (rig._groundDebugMarker) {
+          rig._groundDebugMarker.visible = false;
+        }
+        continue;
+      }
+
+      if (!rig._customGLBData || !rig.joints) continue;
       const data = rig._customGLBData;
-      const { bones, restRot, restQuat, batPivot, batOnBone } = data;
+      const { bones, meshes, restRot, restQuat, restHipsPos, batPivot, batOnBone } = data;
       const j = rig.joints;
       const w = rig._customGLBNode;
 
-      // 1:1 Live Mirror: Custom .GLB model stays locked to rig.root (X=0, Z=0) and never sinks below Y=0
+      // 1:1 Live Mirror: Custom .GLB model stays locked to rig.root (X=0, Z=0) and anchored to Y = 0.0
       const rSh = j.rightArm && j.rightArm.shoulder;
       const lSh = j.leftArm && j.leftArm.shoulder;
       const rEl = j.rightArm && j.rightArm.elbow;
@@ -9681,13 +9841,21 @@
 
       w.position.x = 0;
       w.position.z = 0;
+      const expectedLift = j.pelvis ? Math.max(0, Math.min(0.32, j.pelvis.position.y - 0.88)) : 0;
+      w.position.y = expectedLift;
       if (j.pelvis) {
-        // Clamp Y >= 0 so feet never sink into the pitch during crouched stances, while leaps lift cleanly
-        w.position.y = Math.max(0, Math.min(0.32, j.pelvis.position.y - 0.88));
         w.rotation.y = j.pelvis.rotation.y;
-      } else {
-        w.position.y = 0;
       }
+
+      // Lock hips root bone horizontal translation & prevent hips bone from dipping below rest plane
+      if (bones.hips && restHipsPos) {
+        bones.hips.position.x = restHipsPos.x;
+        bones.hips.position.z = restHipsPos.z;
+        if (bones.hips.position.y < restHipsPos.y) {
+          bones.hips.position.y = restHipsPos.y;
+        }
+      }
+
       if (bones.spine && restRot.spine && j.spine) {
         bones.spine.rotation.set(
           restRot.spine.x + j.spine.rotation.x + (j.chest ? j.chest.rotation.x * 0.6 : 0),
@@ -9735,6 +9903,20 @@
           -0.10 + j.batGripPivot.rotation.z
         );
       }
+
+      // Per-frame lowest-mesh-point ground-plane check: log error if below Y=0.0 and anchor feet to Y = 0.0
+      let minMeshY = computeLowestMeshWorldY(w, meshes);
+      if (Number.isFinite(minMeshY)) {
+        if (minMeshY < GROUND_EPSILON) {
+          logGroundViolation(rig, `${label} skeleton mesh`, minMeshY, elapsed);
+          w.position.y += -minMeshY;
+          minMeshY = 0;
+        } else if (expectedLift <= 0.005 && rig.root.position.y <= 0.005 && minMeshY > 0.005) {
+          w.position.y = Math.max(0, w.position.y - minMeshY);
+          minMeshY = 0;
+        }
+      }
+      updateGroundDebugMarker(rig, minMeshY);
     }
   }
 
@@ -9869,6 +10051,11 @@
     // Counter-pitch ankles slightly so soles remain flat to pitch
     j.leftLeg.foot.rotation.x = -(j.leftLeg.hip.rotation.x + j.leftLeg.knee.rotation.x) * 0.45;
     j.rightLeg.foot.rotation.x = -(j.rightLeg.hip.rotation.x + j.rightLeg.knee.rotation.x) * 0.45;
+    // Exact lowest-mesh compensation so pitched shoe toes, outlines, and pads never dip below Y = 0.0
+    const minMeshY = computeLowestMeshWorldY(rig.root, getCachedRigMeshes(rig));
+    if (Number.isFinite(minMeshY) && minMeshY < 0) {
+      j.pelvis.position.y += -minMeshY;
+    }
   }
 
   // Smooth joint-blending helper for Fielders (no snapping between idle / run / dive / throw)
@@ -9915,6 +10102,13 @@
     j.leftArm.elbow.rotation.set(b.lex, 0, 0);
     j.rightArm.shoulder.rotation.set(b.rsx, b.rsy, b.rsz);
     j.rightArm.elbow.rotation.set(b.rex, 0, 0);
+
+    // Ensure blended intermediate pose never dips any child mesh below ground plane Y = 0.0
+    const blendedMinY = computeLowestMeshWorldY(rig.root, getCachedRigMeshes(rig));
+    if (Number.isFinite(blendedMinY) && blendedMinY < 0) {
+      j.pelvis.position.y += -blendedMinY;
+      b.py = j.pelvis.position.y;
+    }
   }
 
   // Easing curves
@@ -15230,6 +15424,15 @@
       }
 
       const btnCharResetPos = document.getElementById('btn-admin-char-reset-pos');
+      const btnGroundDebug = document.getElementById('btn-admin-ground-debug');
+      if (btnGroundDebug) {
+        btnGroundDebug.textContent = `Ground Debug: ${groundDebugEnabled ? 'ON' : 'OFF'}`;
+        btnGroundDebug.onclick = () => {
+          AudioEngine.playClick();
+          const on = window.toggleGroundDebug();
+          this.toast(on ? 'Ground Debug ON (0.1m red spheres at lowest mesh Y)' : 'Ground Debug OFF');
+        };
+      }
       if (btnCharResetPos) {
         btnCharResetPos.onclick = () => {
           AudioEngine.playClick();
