@@ -252,6 +252,31 @@
       text-transform: uppercase;
     }
 
+    .menu-mascot-stage {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 236px;
+      margin: 6px 0 8px;
+      pointer-events: none;
+    }
+
+    .menu-mascot-img {
+      width: 228px;
+      height: 228px;
+      object-fit: cover;
+      border-radius: 26px;
+      border: 2px solid rgba(245, 185, 50, 0.45);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 28px rgba(245, 185, 50, 0.24);
+      animation: mascotHideShow 4.4s ease-in-out infinite;
+    }
+
+    @keyframes mascotHideShow {
+      0%, 100% { opacity: 0.14; transform: translateY(14px) scale(0.92); }
+      22%, 74% { opacity: 1; transform: translateY(0px) scale(1.03); }
+      88% { opacity: 0.22; transform: translateY(8px) scale(0.95); }
+    }
+
     .menu-actions {
       width: 100%;
       max-width: 420px;
@@ -2303,66 +2328,12 @@
         </div>
       </div>
 
-      <div class="overs-picker">
-        <span style="font-size:12px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;">Stadium</span>
-        <div class="seg-group" id="stadium-seg-group">
-          <button class="seg-btn active" data-stadium="MCG">MCG</button>
-          <button class="seg-btn" data-stadium="LORDS">Lord's</button>
-          <button class="seg-btn" data-stadium="MUMBAI">Mumbai</button>
-          <button class="seg-btn" data-stadium="LAHORE">Lahore</button>
-        </div>
+      <!-- Large HD Animated Hide & Show Cartoon Cricketer in Pro Helmet -->
+      <div class="menu-mascot-stage" aria-hidden="true">
+        <img class="menu-mascot-img" src="/src/assets/images/mascot_cricketer_1795129519054.jpg" alt="Sixer Pro Cricket Hero" />
       </div>
 
-      <div class="overs-picker">
-        <span style="font-size:12px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;">Match Mode</span>
-        <div class="seg-group" id="format-seg-group">
-          <button class="seg-btn active" data-format="QUICK">Quick</button>
-          <button class="seg-btn" data-format="ODI">One-Day</button>
-          <button class="seg-btn" data-format="TEST">Test</button>
-          <button class="seg-btn" data-format="TOUR">Tour</button>
-        </div>
-      </div>
-
-      <div class="overs-picker">
-        <span style="font-size:12px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;">Tournament</span>
-        <div class="seg-group" id="league-seg-group">
-          <button class="seg-btn active" data-league="NONE">None</button>
-          <button class="seg-btn" data-league="ASIA_CUP">Asia Cup</button>
-          <button class="seg-btn" data-league="WC_2027">WC 2027</button>
-          <button class="seg-btn" data-league="IPL">IPL</button>
-          <button class="seg-btn" data-league="PSL">PSL</button>
-        </div>
-      </div>
-
-      <div id="menu-tour-banner" class="tour-status-banner hidden">
-        <div>
-          <div id="menu-tour-title">WORLD TOUR • MATCH 1/3</div>
-          <div id="menu-tour-sub" class="tour-status-sub tabular">SERIES 0 - 0 • TROPHY +250 COINS</div>
-        </div>
-        <button id="btn-tour-reset" class="btn btn-sm" style="padding:4px 8px;font-size:10px;">Reset</button>
-      </div>
-
-      <div class="overs-picker">
-        <span style="font-size:12px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;">Difficulty</span>
-        <div class="seg-group" id="difficulty-seg-group">
-          <button class="seg-btn active" data-diff="easy">Easy</button>
-          <button class="seg-btn" data-diff="hard">Hard</button>
-          <button class="seg-btn" data-diff="pro">Pro</button>
-        </div>
-      </div>
-
-      <div class="overs-picker">
-        <span style="font-size:12px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;">Overs / Innings</span>
-        <div class="seg-group" id="overs-seg-group">
-          <button class="seg-btn" data-overs="1">1</button>
-          <button class="seg-btn active" data-overs="2">2</button>
-          <button class="seg-btn" data-overs="3">3</button>
-          <button class="seg-btn" data-overs="4">4</button>
-          <button class="seg-btn" data-overs="5">5</button>
-        </div>
-      </div>
-
-      <button id="btn-play" class="btn btn-primary">Play Match &amp; Toss</button>
+      <button id="btn-start-setup" class="btn btn-primary">Start Game</button>
       <div class="menu-grid">
         <button id="btn-teams" class="btn">Teams &amp; Squads</button>
         <button id="btn-shop" class="btn">Upgrade Shop</button>
@@ -2781,12 +2752,73 @@
 
   <!-- SETTINGS MODAL -->
   <div id="modal-settings" class="modal-backdrop hidden">
-    <div class="modal-card">
+    <div class="modal-card" style="max-width:440px;max-height:88vh;overflow-y:auto;">
       <div class="modal-header">
-        <h2 class="modal-title">Settings</h2>
+        <h2 class="modal-title">Settings &amp; Match Setup</h2>
         <button id="btn-close-settings" class="btn btn-sm">Done</button>
       </div>
       <div class="modal-body">
+        <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:10px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.12);">
+          <div class="overs-picker">
+            <span style="font-size:12px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;">Stadium</span>
+            <div class="seg-group" id="stadium-seg-group">
+              <button class="seg-btn active" data-stadium="MCG">MCG</button>
+              <button class="seg-btn" data-stadium="LORDS">Lord's</button>
+              <button class="seg-btn" data-stadium="MUMBAI">Mumbai</button>
+              <button class="seg-btn" data-stadium="LAHORE">Lahore</button>
+            </div>
+          </div>
+
+          <div class="overs-picker">
+            <span style="font-size:12px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;">Match Mode</span>
+            <div class="seg-group" id="format-seg-group">
+              <button class="seg-btn active" data-format="QUICK">Quick</button>
+              <button class="seg-btn" data-format="ODI">One-Day</button>
+              <button class="seg-btn" data-format="TEST">Test</button>
+              <button class="seg-btn" data-format="TOUR">Tour</button>
+            </div>
+          </div>
+
+          <div class="overs-picker">
+            <span style="font-size:12px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;">Tournament</span>
+            <div class="seg-group" id="league-seg-group">
+              <button class="seg-btn active" data-league="NONE">None</button>
+              <button class="seg-btn" data-league="ASIA_CUP">Asia Cup</button>
+              <button class="seg-btn" data-league="WC_2027">WC 2027</button>
+              <button class="seg-btn" data-league="IPL">IPL</button>
+              <button class="seg-btn" data-league="PSL">PSL</button>
+            </div>
+          </div>
+
+          <div id="menu-tour-banner" class="tour-status-banner hidden">
+            <div>
+              <div id="menu-tour-title">WORLD TOUR • MATCH 1/3</div>
+              <div id="menu-tour-sub" class="tour-status-sub tabular">SERIES 0 - 0 • TROPHY +250 COINS</div>
+            </div>
+            <button id="btn-tour-reset" class="btn btn-sm" style="padding:4px 8px;font-size:10px;">Reset</button>
+          </div>
+
+          <div class="overs-picker">
+            <span style="font-size:12px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;">Difficulty</span>
+            <div class="seg-group" id="difficulty-seg-group">
+              <button class="seg-btn active" data-diff="easy">Easy</button>
+              <button class="seg-btn" data-diff="hard">Hard</button>
+              <button class="seg-btn" data-diff="pro">Pro</button>
+            </div>
+          </div>
+
+          <div class="overs-picker">
+            <span style="font-size:12px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;">Overs / Innings</span>
+            <div class="seg-group" id="overs-seg-group">
+              <button class="seg-btn" data-overs="1">1</button>
+              <button class="seg-btn active" data-overs="2">2</button>
+              <button class="seg-btn" data-overs="3">3</button>
+              <button class="seg-btn" data-overs="4">4</button>
+              <button class="seg-btn" data-overs="5">5</button>
+            </div>
+          </div>
+          <button id="btn-play" class="btn btn-primary" style="margin-top:4px;width:100%;">Play Match &amp; Toss 🏏</button>
+        </div>
         <div class="setting-row">
           <div>
             <div class="setting-label">Global Sound</div>
@@ -2856,13 +2888,6 @@
               <input id="gear-color-pads" type="color" value="#f1f5f9" style="width:26px;height:22px;border:none;background:none;padding:0;cursor:pointer;" />
             </label>
           </div>
-        </div>
-        <div class="setting-row" style="margin-top:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.1);">
-          <div>
-            <div class="setting-label">Admin Console</div>
-            <div class="setting-desc">Manage live ads, 3D models &amp; cloud settings</div>
-          </div>
-          <button id="btn-settings-open-admin" class="btn btn-sm" style="border-color:rgba(245,185,50,0.5);color:var(--gold);">Open</button>
         </div>
       </div>
     </div>
@@ -5827,32 +5852,32 @@
     bc.width = 512; bc.height = 512;
     const bCtx = bc.getContext('2d');
 
-    // Deep dark stadium grass + alternating lawnmower stripes across full 148m circle
-    const stripes = 28;
+    // Vibrant HD broadcast stadium grass + crisp alternating lawnmower stripes across full 148m circle
+    const stripes = 32;
     const stripeW = size / stripes;
     const rStripeW = 512 / stripes;
     for (let i = 0; i < stripes; i++) {
       const even = i % 2 === 0;
-      ctx.fillStyle = even ? '#0b3b15' : '#104d1d';
+      ctx.fillStyle = even ? '#146624' : '#1c7d2e';
       ctx.fillRect(i * stripeW, 0, stripeW + 1, size);
-      rCtx.fillStyle = even ? '#d2d2d2' : '#f2f2f2';
+      rCtx.fillStyle = even ? '#c4c4c4' : '#ededed';
       rCtx.fillRect(i * rStripeW, 0, rStripeW + 1, 512);
     }
 
-    // Subtle cross-cut horizontal mower bands for broadcast checkerboard depth
+    // Crisp cross-cut horizontal mower bands for HD TV broadcast checkerboard depth
     for (let j = 0; j < stripes; j++) {
-      ctx.fillStyle = j % 2 === 0 ? 'rgba(255,255,255,0.022)' : 'rgba(4,34,12,0.042)';
+      ctx.fillStyle = j % 2 === 0 ? 'rgba(255,255,255,0.048)' : 'rgba(6,44,16,0.065)';
       ctx.fillRect(0, j * stripeW, size, stripeW);
     }
 
-    // Cross-cut concentric stadium mowing rings (subtle radial sheen bands)
+    // Cross-cut concentric stadium mowing rings (crisp radial sheen bands)
     const cx = size * 0.5;
     const cy = size * 0.5;
-    for (let ring = 8; ring >= 1; ring--) {
-      const rad = (ring / 8) * (size * 0.5);
+    for (let ring = 10; ring >= 1; ring--) {
+      const rad = (ring / 10) * (size * 0.5);
       ctx.beginPath();
       ctx.arc(cx, cy, rad, 0, Math.PI * 2);
-      ctx.fillStyle = ring % 2 === 0 ? 'rgba(255,255,255,0.026)' : 'rgba(4,36,14,0.048)';
+      ctx.fillStyle = ring % 2 === 0 ? 'rgba(255,255,255,0.036)' : 'rgba(6,48,18,0.056)';
       ctx.fill();
     }
 
@@ -8173,7 +8198,7 @@
   const OUTLINE_MAT = new THREE.MeshBasicMaterial({ color: 0x0b1220, side: THREE.BackSide });
 
   // Instanced Seated Cartoon Stadium Crowd (2200 Seated Fans: Torso + Large Cartoon Head + Seated Legs + Cheering Arms + Caps + Outlines)
-  const CROWD_COUNT = 2200;
+  const CROWD_COUNT = 3000;
   const torsoProfile = [
     new THREE.Vector2(0.01, 0.0),
     new THREE.Vector2(0.18, 0.03),
@@ -8183,19 +8208,19 @@
     new THREE.Vector2(0.09, 0.59),
     new THREE.Vector2(0.01, 0.60),
   ];
-  const crowdTorsoGeo = new THREE.LatheGeometry(torsoProfile, 8);
+  const crowdTorsoGeo = new THREE.LatheGeometry(torsoProfile, 12);
   crowdTorsoGeo.scale(1.36, 1.36, 1.36);
   const crowdMatToon = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: TOON_GRADIENT_MAP });
-  const crowdMatStd = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.65 });
+  const crowdMatStd = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.48, metalness: 0.08 });
   const crowdMesh = new THREE.InstancedMesh(crowdTorsoGeo, crowdMatStd, CROWD_COUNT);
 
   // Cartoon Toon Torso Outline
   const crowdTorsoOutlineMesh = new THREE.InstancedMesh(crowdTorsoGeo, OUTLINE_MAT, CROWD_COUNT);
 
-  // Enlarged Stylized Head + Outline
-  const crowdHeadGeo = new THREE.SphereGeometry(0.24, 9, 8);
+  // Enlarged Stylized HD Head + Outline
+  const crowdHeadGeo = new THREE.SphereGeometry(0.24, 14, 12);
   const crowdHeadMatToon = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: TOON_GRADIENT_MAP });
-  const crowdHeadMatStd = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.68 });
+  const crowdHeadMatStd = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.46, metalness: 0.04 });
   const crowdHeadMesh = new THREE.InstancedMesh(crowdHeadGeo, crowdHeadMatStd, CROWD_COUNT);
   const crowdHeadOutlineMesh = new THREE.InstancedMesh(crowdHeadGeo, OUTLINE_MAT, CROWD_COUNT);
 
@@ -8822,25 +8847,77 @@
       return m;
     };
 
-    const matJersey = createMatPair({ color: role === 'umpire' ? '#f8fafc' : kitPrimary, roughness: 0.78, metalness: 0.02 });
+    if (!window._hdJerseyTex) {
+      const jc = document.createElement('canvas');
+      jc.width = 256; jc.height = 256;
+      const jctx = jc.getContext('2d');
+      jctx.fillStyle = '#eceff4';
+      jctx.fillRect(0, 0, 256, 256);
+      // Subtle athletic diagonal chevron weave
+      jctx.strokeStyle = 'rgba(255,255,255,0.28)';
+      jctx.lineWidth = 10;
+      for (let y = -128; y < 384; y += 36) {
+        jctx.beginPath();
+        jctx.moveTo(0, y);
+        jctx.lineTo(128, y + 48);
+        jctx.lineTo(256, y);
+        jctx.stroke();
+      }
+      // Fine breathable mesh micro-dots
+      jctx.fillStyle = 'rgba(15,23,42,0.06)';
+      for (let y = 0; y < 256; y += 8) {
+        for (let x = (y % 16 === 0 ? 0 : 4); x < 256; x += 8) {
+          jctx.fillRect(x, y, 2, 2);
+        }
+      }
+      const jt = new THREE.CanvasTexture(jc);
+      jt.wrapS = jt.wrapT = THREE.RepeatWrapping;
+      jt.repeat.set(2, 2);
+      jt.anisotropy = Math.min(8, maxAniso || 4);
+      window._hdJerseyTex = jt;
+    }
+    if (!window._hdPadTex) {
+      const pc = document.createElement('canvas');
+      pc.width = 128; pc.height = 256;
+      const pctx = pc.getContext('2d');
+      pctx.fillStyle = '#f8fafc';
+      pctx.fillRect(0, 0, 128, 256);
+      // Vertical ribbed batting-pad bolsters & knee roll seams
+      pctx.fillStyle = 'rgba(148,163,184,0.28)';
+      pctx.fillRect(40, 0, 4, 256);
+      pctx.fillRect(84, 0, 4, 256);
+      pctx.fillStyle = 'rgba(100,116,139,0.34)';
+      pctx.fillRect(0, 82, 128, 5);
+      pctx.fillRect(0, 108, 128, 5);
+      const pt = new THREE.CanvasTexture(pc);
+      pt.anisotropy = Math.min(8, maxAniso || 4);
+      window._hdPadTex = pt;
+    }
+
+    const matJersey = createMatPair({
+      color: role === 'umpire' ? '#f8fafc' : kitPrimary,
+      map: role === 'umpire' ? null : window._hdJerseyTex,
+      roughness: 0.56,
+      metalness: 0.08,
+    });
     const matBackJersey = createMatPair({
       map: role === 'umpire' ? null : createJerseyBackTexture('PLAYER', String(jerseyNum), kitPrimary, kitTrim, maxAniso),
       color: role === 'umpire' ? '#f8fafc' : '#ffffff',
-      roughness: 0.78,
-      metalness: 0.02,
+      roughness: 0.58,
+      metalness: 0.06,
       polygonOffset: true,
       polygonOffsetFactor: -1,
     });
-    const matPants = createMatPair({ color: role === 'umpire' ? '#0f172a' : (kitTrousers || kitPrimary), roughness: 0.82, metalness: 0.02 });
-    const matTrim = createMatPair({ color: role === 'umpire' ? '#dc2626' : kitSecondary, roughness: 0.48, metalness: 0.08 });
-    const matAccent = createMatPair({ color: role === 'umpire' ? '#0f172a' : kitTrim, roughness: 0.45, metalness: 0.08 });
-    const matSkin = createMatPair({ color: skinTone, roughness: 0.58, metalness: 0.02 });
-    const matShoe = createMatPair({ color: '#f8fafc', roughness: 0.36, metalness: 0.06 });
-    const matSole = createMatPair({ color: '#1e293b', roughness: 0.80 });
-    const matPad = createMatPair({ color: '#f1f5f9', roughness: 0.38, metalness: 0.04 });
-    const matGlove = createMatPair({ color: role === 'keeper' ? '#10b981' : '#f8fafc', roughness: 0.38, metalness: 0.04 });
-    const matHelmet = createMatPair({ color: role === 'umpire' ? '#f8fafc' : kitPrimary, roughness: 0.18, metalness: 0.35 });
-    const matGrille = createMatPair({ color: '#e2e8f0', roughness: 0.22, metalness: 0.92 });
+    const matPants = createMatPair({ color: role === 'umpire' ? '#0f172a' : (kitTrousers || kitPrimary), roughness: 0.64, metalness: 0.05 });
+    const matTrim = createMatPair({ color: role === 'umpire' ? '#dc2626' : kitSecondary, roughness: 0.34, metalness: 0.22 });
+    const matAccent = createMatPair({ color: role === 'umpire' ? '#0f172a' : kitTrim, roughness: 0.32, metalness: 0.22 });
+    const matSkin = createMatPair({ color: skinTone, roughness: 0.46, metalness: 0.03 });
+    const matShoe = createMatPair({ color: '#f8fafc', roughness: 0.28, metalness: 0.12 });
+    const matSole = createMatPair({ color: '#1e293b', roughness: 0.75 });
+    const matPad = createMatPair({ color: '#f8fafc', map: window._hdPadTex, roughness: 0.30, metalness: 0.08 });
+    const matGlove = createMatPair({ color: role === 'keeper' ? '#10b981' : '#f8fafc', roughness: 0.32, metalness: 0.08 });
+    const matHelmet = createMatPair({ color: role === 'umpire' ? '#f8fafc' : kitPrimary, roughness: 0.14, metalness: 0.42 });
+    const matGrille = createMatPair({ color: '#f1f5f9', roughness: 0.18, metalness: 0.94 });
 
     // Segment length constants (must match geometry offsets & IK solver)
     const L1 = 0.27;
@@ -9177,11 +9254,9 @@
       },
       updateKit(team, numStr, nameStr = 'PLAYER') {
         this._lastKit = { team, numStr: String(numStr), nameStr };
-        const custom = Storage && Storage.data && Storage.data.settings && Storage.data.settings.gearColors;
-        const useCustom = !!(custom && custom.enabled && role !== 'umpire');
-        const jerseyHex = useCustom && custom.jersey ? custom.jersey : team.kitPrimary;
-        const hatHex = useCustom && custom.hat ? custom.hat : team.kitPrimary;
-        const padHex = useCustom && custom.pads ? custom.pads : '#f1f5f9';
+        const jerseyHex = team.kitPrimary;
+        const hatHex = team.kitPrimary;
+        const padHex = '#f1f5f9';
         matJersey.setColor(jerseyHex);
         matPants.setColor(team.kitTrousers || jerseyHex);
         matTrim.setColor(team.kitSecondary);
@@ -9418,19 +9493,26 @@
           obj.frustumCulled = false;
         }
         if (obj.isBone) {
-          const n = (obj.name || '').toLowerCase();
-          if (!bones.hips && /hips|pelvis|root/.test(n)) bones.hips = obj;
-          if (!bones.spine && /spine|torso|chest/.test(n)) bones.spine = obj;
+          const n = (obj.name || '').toLowerCase().replace(/[\s\-]+/g, '_');
+          const isRight = /(right|[._]r$|[._]r[._]|^r_|_r_|mixamorig:?right|bip01_r)/.test(n);
+          const isLeft = /(left|[._]l$|[._]l[._]|^l_|_l_|mixamorig:?left|bip01_l)/.test(n);
+          if (!bones.hips && /(hips|pelvis|root|bip01$)/.test(n)) bones.hips = obj;
+          if (!bones.spine && /(spine|torso|chest|abdomen)/.test(n)) bones.spine = obj;
           if (!bones.head && /head/.test(n)) bones.head = obj;
-          if (!bones.rArm && /(rightarm|upperarm_r|arm_r|r_upperarm|shoulder_r|rightupperarm|mixamorigrightarm$)/.test(n)) bones.rArm = obj;
-          if (!bones.lArm && /(leftarm|upperarm_l|arm_l|l_upperarm|shoulder_l|leftupperarm|mixamorigleftarm$)/.test(n)) bones.lArm = obj;
-          if (!bones.rFore && /(rightforearm|forearm_r|lowerarm_r|r_forearm)/.test(n)) bones.rFore = obj;
-          if (!bones.lFore && /(leftforearm|forearm_l|lowerarm_l|l_forearm)/.test(n)) bones.lFore = obj;
-          if (!bones.rLeg && /(rightupleg|thigh_r|upperleg_r|r_thigh)/.test(n)) bones.rLeg = obj;
-          if (!bones.lLeg && /(leftupleg|thigh_l|upperleg_l|l_thigh)/.test(n)) bones.lLeg = obj;
-          if (!bones.rShin && /(rightleg|shin_r|calf_r|lowerleg_r)/.test(n)) bones.rShin = obj;
-          if (!bones.lShin && /(leftleg|shin_l|calf_l|lowerleg_l)/.test(n)) bones.lShin = obj;
-          if (!bones.rHand && /(righthand|hand_r|r_hand)/.test(n)) bones.rHand = obj;
+
+          if (isRight) {
+            if (!bones.rFore && /(forearm|lower_?arm|elbow)/.test(n)) bones.rFore = obj;
+            else if (!bones.rHand && /(hand|wrist)/.test(n)) bones.rHand = obj;
+            else if (!bones.rArm && /(upper_?arm|arm|humerus)/.test(n) && !/(forearm|lower|hand|clavicle|collar)/.test(n)) bones.rArm = obj;
+            else if (!bones.rShin && /(shin|calf|lower_?leg|knee|rightleg|leg[._]r|r_leg)/.test(n) && !/(up|thigh)/.test(n)) bones.rShin = obj;
+            else if (!bones.rLeg && /(upleg|thigh|upper_?leg)/.test(n)) bones.rLeg = obj;
+          } else if (isLeft) {
+            if (!bones.lFore && /(forearm|lower_?arm|elbow)/.test(n)) bones.lFore = obj;
+            else if (!bones.lHand && /(hand|wrist)/.test(n)) bones.lHand = obj;
+            else if (!bones.lArm && /(upper_?arm|arm|humerus)/.test(n) && !/(forearm|lower|hand|clavicle|collar)/.test(n)) bones.lArm = obj;
+            else if (!bones.lShin && /(shin|calf|lower_?leg|knee|leftleg|leg[._]l|l_leg)/.test(n) && !/(up|thigh)/.test(n)) bones.lShin = obj;
+            else if (!bones.lLeg && /(upleg|thigh|upper_?leg)/.test(n)) bones.lLeg = obj;
+          }
         }
       });
 
@@ -9445,11 +9527,12 @@
       const alignArmDown = (upperBone, lowerBone) => {
         if (!upperBone) return null;
         const baseQ = upperBone.quaternion.clone();
-        if (!lowerBone || !upperBone.parent) return baseQ;
+        const childBone = lowerBone || upperBone.children.find((c) => c.isBone);
+        if (!childBone || !upperBone.parent) return baseQ;
         const pW = new THREE.Vector3();
         const cW = new THREE.Vector3();
         upperBone.getWorldPosition(pW);
-        lowerBone.getWorldPosition(cW);
+        childBone.getWorldPosition(cW);
         const worldDir = cW.sub(pW);
         if (worldDir.lengthSq() < 1e-6) return baseQ;
         worldDir.normalize();
@@ -9467,9 +9550,15 @@
         const b = bones[k];
         if (!b) return;
         restRot[k] = { x: b.rotation.x, y: b.rotation.y, z: b.rotation.z };
-        if (k === 'rArm') restQuat[k] = alignArmDown(bones.rArm, bones.rFore);
-        else if (k === 'lArm') restQuat[k] = alignArmDown(bones.lArm, bones.lFore);
-        else restQuat[k] = b.quaternion.clone();
+        if (k === 'rArm') {
+          restQuat[k] = alignArmDown(bones.rArm, bones.rFore);
+          if (restQuat[k]) b.quaternion.copy(restQuat[k]);
+        } else if (k === 'lArm') {
+          restQuat[k] = alignArmDown(bones.lArm, bones.lFore);
+          if (restQuat[k]) b.quaternion.copy(restQuat[k]);
+        } else {
+          restQuat[k] = b.quaternion.clone();
+        }
       });
 
       // Set up AnimationMixer if the GLB contains embedded animation clips,
@@ -14890,15 +14979,6 @@
         secretTitle.addEventListener('click', onSecretTap);
       }
 
-      const btnSettingsAdmin = document.getElementById('btn-settings-open-admin');
-      if (btnSettingsAdmin) {
-        btnSettingsAdmin.addEventListener('click', () => {
-          const sm = document.getElementById('modal-settings');
-          if (sm) sm.classList.add('hidden');
-          this.requestOpen();
-        });
-      }
-
       const unlockBtn = document.getElementById('btn-pin-unlock');
       const pinInput = document.getElementById('admin-pin-input');
       const tryUnlock = () => {
@@ -16042,6 +16122,23 @@
       window.HawkEyeHUD = { render };
     })();
 
+    (function initStartGameBtn() {
+      const btnStartSetup = document.getElementById('btn-start-setup');
+      if (btnStartSetup) {
+        btnStartSetup.addEventListener('click', () => {
+          const sm = document.getElementById('modal-settings');
+          if (sm) sm.classList.remove('hidden');
+        });
+      }
+      const btnPlayInSettings = document.getElementById('btn-play');
+      if (btnPlayInSettings) {
+        btnPlayInSettings.addEventListener('click', () => {
+          const sm = document.getElementById('modal-settings');
+          if (sm) sm.classList.add('hidden');
+        });
+      }
+    })();
+
     (function initPWA() {
       const installBtn = document.getElementById('btn-pwa-install');
       const iosModal = document.getElementById('pwa-ios-modal');
@@ -16159,7 +16256,14 @@
               if (api.getUser()) await api.signOut();
               else await api.signIn();
             } catch (err) {
-              if (statusEl) statusEl.textContent = 'Sign-in cancelled or failed.';
+              const code = (err && err.code) || '';
+              if (statusEl) {
+                if (code === 'auth/unauthorized-domain') {
+                  statusEl.textContent = 'Add "' + window.location.hostname + '" in Firebase Console → Auth → Authorized domains.';
+                } else {
+                  statusEl.textContent = 'Sign-in failed: ' + (code || (err && err.message) || 'Popup blocked');
+                }
+              }
             }
           });
         }
