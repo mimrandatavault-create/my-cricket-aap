@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "description": "Drop-in external rigged GLB/GLTF cricket character & animation asset manifest. Leave null to use built-in articulated fallback rigs until external licensed assets are placed in /public/models/.",
+  "roles": {
+    "all": null,
+    "batter": null,
+    "nonstriker": null,
+    "bowler": null,
+    "keeper": null,
+    "fielder": null,
+    "umpire": null
+  },
+  "animations": null,
+  "animationMap": {
+    "idle": ["idle", "stand", "ready", "breathe"],
+    "walk": ["walk", "umpire_walk"],
+    "run": ["run", "sprint", "jog"],
+    "bat_stance": ["bat_stance", "batting_idle", "stance"],
+    "bat_swing": ["bat_swing", "batting", "swing", "drive", "hit", "strike"],
+    "bowl_runup": ["bowl_runup", "runup"],
+    "bowl_delivery": ["bowl", "bowling", "delivery", "throw"],
+    "keeper_crouch": ["keeper_crouch", "keeper_idle", "crouch", "wicketkeeper"],
+    "keeper_catch": ["keeper_catch", "catch"],
+    "field_dive": ["dive", "field_dive"],
+    "field_throw": ["throw", "field_throw", "overarm"],
+    "celebrate": ["celebrate", "cheer", "victory", "win"]
+  },
+  "mobile": {
+    "maxTextureSize": 1024,
+    "disableFielderCastShadowsOnLow": true
+  }
+}
